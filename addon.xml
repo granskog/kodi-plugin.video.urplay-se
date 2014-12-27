@@ -4,9 +4,9 @@
        version="0.1"
        provider-name="DGS">
   <requires>
-    <import addon="xbmc.python" version="2.1.0"/>
+    <import addon="xbmc.python" version="2.14.0"/>
   </requires>
-  <extension point="xbmc.python.pluginsource" library="urplay.py">
+  <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
@@ -14,10 +14,10 @@
     <summary lang="sv">Se innehåll från UR Play.</summary>
     <description lang="en">This add-on make it possible to stream video content from the Swedish site "urplay.se".</description>
 	  <description lang="sv">Denna add-on gör det möjligt att se innehåll från UR Play (urplay.se).</description>
-    <disclaimer lang="en"></disclaimer>
-    <language></language>
+    <disclaimer lang="en">This is an unofficial addon and it is not supported or maintained by UR (Utbildningsradion). Some parts of this addon may not be legal in your country of residence - please check with your local laws before installing.</disclaimer>
+    <language>sv</language>
     <platform>all</platform>
-    <license></license>
+    <license>GNU GENERAL PUBLIC LICENSE. Version 3, 29 June 2007</license>
     <forum></forum>
     <website></website>
     <email></email>
