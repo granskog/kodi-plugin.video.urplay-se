@@ -2,7 +2,7 @@
 <addon id="plugin.video.urplay-se"
        name="UR Play"
        version="0.1"
-       provider-name="DGS">
+       provider-name="dgs">
   <requires>
     <import addon="xbmc.python" version="2.14.0"/>
   </requires>
