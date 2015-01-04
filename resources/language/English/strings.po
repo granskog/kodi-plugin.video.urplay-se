@@ -22,8 +22,66 @@ msgstr ""
 #msgid ""
 #msgstr ""
 
-# Base Menu items.
+# Base menu iems.
 
 msgctxt "#30100"
-msgid ""
+msgid "Front Page"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Popular"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Most Shared"
+msgstr ""
+
+msgctxt "#30103"
+msgid "Latest"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Last Chance To See"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Categories"
+msgstr ""
+
+msgctxt "#30106"
+msgid "Current"
+msgstr ""
+
+msgctxt "#30107"
+msgid "Programs A-Ö"
+msgstr ""
+
+# Categories menu items.
+
+msgctxt "#30200"
+msgid "Documentary"
+msgstr ""
+
+msgctxt "#30201"
+msgid "Lectures & Debate"
+msgstr ""
+
+msgctxt "#30202"
+msgid "Science"
+msgstr ""
+
+msgctxt "#30203"
+msgid "Culture & History"
+msgstr ""
+
+msgctxt "#30204"
+msgid "Society"
+msgstr ""
+
+msgctxt "#30205"
+msgid "Language"
+msgstr ""
+
+msgctxt "#30206"
+msgid "Children"
 msgstr ""

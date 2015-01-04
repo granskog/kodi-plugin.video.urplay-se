@@ -16,6 +16,72 @@ msgstr ""
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#msgctxt "#32001"
-#msgid "We would like to recommend you to upgrade."
+# Default strings.
+
+#msgctxt "#30000"
+#msgid ""
 #msgstr ""
+
+# Base menu iems.
+
+msgctxt "#30100"
+msgid "Front Page"
+msgstr "Startsida"
+
+msgctxt "#30101"
+msgid "Popular"
+msgstr "Mest spelade"
+
+msgctxt "#30102"
+msgid "Most Shared"
+msgstr "Mest delade"
+
+msgctxt "#30103"
+msgid "Latest"
+msgstr "Senaste"
+
+msgctxt "#30104"
+msgid "Last Chance To See"
+msgstr "Sista chansen"
+
+msgctxt "#30105"
+msgid "Categories"
+msgstr "Kategorier"
+
+msgctxt "#30106"
+msgid "Current"
+msgstr "Aktuellt"
+
+msgctxt "#30107"
+msgid "Programs A-Ö"
+msgstr "Program A-Ö"
+
+# Categories menu items.
+
+msgctxt "#30200"
+msgid "Documentary"
+msgstr "Dokumentär"
+
+msgctxt "#30201"
+msgid "Lectures & Debate"
+msgstr "Föreläsningar & debatt"
+
+msgctxt "#30202"
+msgid "Science"
+msgstr "Vetenskap"
+
+msgctxt "#30203"
+msgid "Culture & History"
+msgstr "Kultur & historia"
+
+msgctxt "#30204"
+msgid "Society"
+msgstr "Samhälle"
+
+msgctxt "#30205"
+msgid "Language"
+msgstr "Språk"
+
+msgctxt "#30206"
+msgid "Children"
+msgstr "Barn"
