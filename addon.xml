@@ -5,6 +5,7 @@
        provider-name="dgs">
   <requires>
     <import addon="xbmc.python" version="2.14.0"/>
+    <import addon="script.module.requests" version="2.4.3"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>video</provides>
@@ -12,8 +13,8 @@
   <extension point="xbmc.addon.metadata">
     <summary lang="en">Watch content from UR Play.</summary>
     <summary lang="sv">Se innehåll från UR Play.</summary>
-    <description lang="en">This add-on make it possible to stream video content from the Swedish site "urplay.se".</description>
-	  <description lang="sv">Denna add-on gör det möjligt att se innehåll från UR Play (urplay.se).</description>
+    <description lang="en">This add-on let you browse and watch educational content from UR, the Swedish Educational Broadcasting Company. UR Play is Sweden's most knowledge-packed Play Service with more than 2,500 programs on everything from history to math and language. The content is aimed at a Swedish audience and might not be available for other countries.</description>
+	  <description lang="sv">Denna add-on gör det möjligt att se innehåll från UR Play (urplay.se). UR Play är Sveriges mest kunskapsspäckade Playtjänst med mer än 2500 program om allt från historia till matematik och språk.</description>
     <disclaimer lang="en">This is an unofficial addon and it is not supported or maintained by UR (Utbildningsradion). Some parts of this addon may not be legal in your country of residence - please check with your local laws before installing.</disclaimer>
     <language>sv</language>
     <platform>all</platform>
