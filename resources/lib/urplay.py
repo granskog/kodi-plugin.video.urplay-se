@@ -9,15 +9,18 @@ from parsedom import parseDOM
 
 log = util.Logger()
 
-class Page(object):
-    _baseURL = 'http://urplay.se'
+class BaseHandler(object):
+    @property
+    def URL(self):
+        return 'http://urplay.se'
+
     def __init__(self, plugin):
         self._plugin = plugin
 
     def process(self):
         pass
 
-class StaticItems(Page):
+class StaticItems(BaseHandler):
     _items = []
     def process(self):
         log.debug('Fetching {0} page!'.format(type(self).__name__))
@@ -64,16 +67,19 @@ class Current(StaticItems):
         (30100, '/')
     ]
 
-class Videos(Page):
+class Videos(BaseHandler):
     def process(self, page):
         log.debug('Fetching a list of videos on "{0}" page!'.format(page))
 
-class PlayVideo(Page):
-    _URI = '/Produkter/'
+class PlayVideo(BaseHandler):
+    @property
+    def URL(self):
+        return super(PlayVideo, self).URL + '/Produkter/'
+
     def process(self, id):
-        log.info('Fetching video from urplay.se with id="{0}".'.format(id))
         try:
-            url = self._baseURL + self._URI + id
+            url = self.URL + id
+            log.info('Fetching video info from "{0}".'.format(url))
             req = requests.get(url)
             req.raise_for_status()
 
