@@ -1,45 +1,53 @@
 # -*- coding: utf-8 -*-
 import sys
 import xbmc
-import xbmcgui
 import xbmcplugin
 import xbmcaddon
-import re
+import urlparse
 
 import resources.lib.util as util
 
 # Add-on info.
-proc_handle = int(sys.argv[1])
-
-xbmcplugin.setContent(proc_handle, 'tvshows')
+class Plugin:
+    pass
+__plugin__ = Plugin()
 __addon__ = xbmcaddon.Addon()
-__localize__ = __addon__.getLocalizedString
+
+__plugin__.handle = int(sys.argv[1])
+__plugin__.name = __addon__.getAddonInfo('name')
+__plugin__.version = __addon__.getAddonInfo('version')
+__plugin__.localize = lambda s: __addon__.getLocalizedString(s).encode('utf-8', 'ignore')
+__plugin__.baseURL = 'plugin://{0}'.format(__addon__.getAddonInfo('id'))
+__plugin__.url = sys.argv[0]
+__plugin__.args = urlparse.parse_qs(sys.argv[2][1:])
+
+xbmcplugin.setContent(__plugin__.handle, 'tvshows')
 
 # Setup the logger before any modules that might use it are imported.
 log = util.Logger(xbmc.log,
-        name = __addon__.getAddonInfo('name') + ' v' + __addon__.getAddonInfo('version'),
+        name = __plugin__.name + ' v' + __plugin__.version,
         lvlDeb = xbmc.LOGDEBUG,
         lvlInfo = xbmc.LOGINFO,
         lvlWarn = xbmc.LOGWARNING,
         lvlErr = xbmc.LOGERROR)
 log.info('Plugin started!')
+log.debug('Plugin base URL: ' + __plugin__.baseURL)
 
 import resources.lib.dispatcher as dp
 import resources.lib.urplay as ur
 
-baseURL = 'plugin://{0}'.format(__addon__.getAddonInfo('id'))
-log.debug('Plugin base URL: ' + baseURL)
-
-# Associate the plugin URL to respective handler.
-app = dp.Dispatcher(baseURL, [
-    (r'/', ur.Index),
+# Associate the plugin URLs to respective handler.
+app = dp.Dispatcher(__plugin__, [
+    (r'/?', ur.Index),
     (r'/kategori', ur.Categories),
     (r'/kategori/([a-zA-Z0-9_\-.~]+)', ur.Videos),
     (r'/a-to-o', ur.AToO),
+    (r'/aktuellt', ur.Current),
+    (r'/(aktuellt/[a-zA-Z0-9_\-.~]+)', ur.Videos),
+    (r'/(produkter/[a-zA-Z0-9_\-.~]+)', ur.Videos),
     (r'/video/([a-zA-Z0-9_\-.~]+)', ur.PlayVideo)
 ])
 
 # Run the addon application.
-url = sys.argv[0]
-log.debug('Dispatching URL: ' + url)
-app.dispatch(url)
+log.debug('Dispatching URL: ' + __plugin__.url)
+app.dispatch(__plugin__.url)

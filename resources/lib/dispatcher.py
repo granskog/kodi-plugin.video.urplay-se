@@ -1,24 +1,19 @@
 # -*- coding: utf-8 -*-
-import sys
-import xbmc
-import xbmcgui
-import xbmcplugin
-import xbmcaddon
 import re
 import util
 log = util.Logger()
 
 class Dispatcher(object):
     _routes = None
-    def __init__(self, baseURL, routes):
-        self._baseURL = baseURL
+    def __init__(self, plugin, routes):
+        self._plugin = plugin
         self._routes = routes
 
     def dispatch(self, url):
         if self._routes is None: return
 
         # Separate the base URL
-        uri = url.split(self._baseURL)[-1]
+        uri = url.split(self._plugin.baseURL)[-1]
 
         for template, handlerClass in self._routes:
 
@@ -35,8 +30,8 @@ class Dispatcher(object):
             if match:
 
                 log.debug('Match for: r"{0}". Groups: {1}.'.format(template, match.groups()))
-                h = handlerClass(*match.groups())
-                h.process()
+                h = handlerClass(self._plugin)
+                h.process(*match.groups())
                 break;
 
         else:
