@@ -39,12 +39,12 @@ import resources.lib.urplay as ur
 # Associate the plugin URLs to respective handler.
 app = dp.Dispatcher(__plugin__, [
     (r'/?', ur.Index),
-    (r'/kategori', ur.Categories),
-    (r'/kategori/([a-zA-Z0-9_\-.~]+)', ur.VideoCollection),
-    (r'/a-to-o', ur.AToO),
-    (r'/tv-serie/([a-zA-Z0-9_\-.~]+)', ur.TVSeries),
-    (r'/aktuellt', ur.CurrentVideos),
-    (r'/aktuellt/([a-zA-Z0-9_\-.~]+)', ur.CurrentVideoCollection),
+    (r'/category', ur.Categories),
+    (r'/category/([a-zA-Z0-9_\-.~]+)', ur.VideoCollection),
+    (r'/programmes', ur.ProgrammesAToZ),
+    (r'/series/([a-zA-Z0-9_\-.~]+)', ur.Series),
+    (r'/current', ur.CurrentShows),
+    (r'/current/([a-zA-Z0-9_\-.~]+)', ur.CurrentVideos),
     (r'/video/([a-zA-Z0-9_\-.~]+)', ur.Video)
 ])
 

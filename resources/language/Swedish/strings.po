@@ -53,7 +53,7 @@ msgid "Current"
 msgstr "Aktuellt"
 
 msgctxt "#30107"
-msgid "Programs A-Ö"
+msgid "Programmes A-Ö"
 msgstr "Program A-Ö"
 
 # Categories menu items.

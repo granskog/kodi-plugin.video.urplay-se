@@ -45,32 +45,32 @@ class StaticDir(Collection):
 class Index(StaticDir):
     _items = [
         # (30100, '/startsida'),
-        (30101, '/kategori/Mest-spelade'),
-        (30102, '/kategori/Mest-delade'),
-        (30103, '/kategori/Senaste'),
-        (30104, '/kategori/Sista-chansen'),
-        (30105, '/kategori'),
-        (30106, '/aktuellt'),
-        (30107, '/a-to-o')
+        (30101, '/category/Mest-spelade'),
+        (30102, '/category/Mest-delade'),
+        (30103, '/category/Senaste'),
+        (30104, '/category/Sista-chansen'),
+        (30105, '/category'),
+        (30106, '/current'),
+        (30107, '/programmes')
     ]
 
 class Categories(StaticDir):
     _items = [
-        (30200, '/kategori/Dokumentar'),
-        (30201, '/kategori/Forelasningar-debatt'),
-        (30202, '/kategori/Vetenskap'),
-        (30203, '/kategori/Kultur-historia'),
-        (30204, '/kategori/Samhalle'),
-        (30205, '/kategori/Sprak'),
-        (30206, '/kategori/Barn')
+        (30200, '/category/Dokumentar'),
+        (30201, '/category/Forelasningar-debatt'),
+        (30202, '/category/Vetenskap'),
+        (30203, '/category/Kultur-historia'),
+        (30204, '/category/Samhalle'),
+        (30205, '/category/Sprak'),
+        (30206, '/category/Barn')
     ]
 
-class AToO(StaticDir):
+class ProgrammesAToZ(StaticDir):
     _items = [
         (30100, '/')
     ]
 
-class CurrentVideos(StaticDir):
+class CurrentShows(StaticDir):
     _items = [
         (30100, '/')
     ]
@@ -84,15 +84,15 @@ class VideoCollection(Collection):
     def URL(self):
         return super(VideoCollection, self).URL + '/' + self._path
 
-class CurrentVideoCollection(VideoCollection):
+class CurrentVideos(VideoCollection):
     @property
     def URL(self):
-        return super(CurrentVideoCollection, self).URL + '/Aktuellt/' + self._path
+        return super(CurrentVideos, self).URL + '/Aktuellt/' + self._path
 
-class TVSeries(VideoCollection):
+class Series(VideoCollection):
     @property
     def URL(self):
-        return super(TVSeries, self).URL + '/Produkter/' + self._path
+        return super(Series, self).URL + '/Produkter/' + self._path
 
 class Video(BaseHandler):
     def __init__(self, plugin, id):
