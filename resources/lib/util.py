@@ -26,17 +26,22 @@ class Logger(object):
     def _default_log_func(self, msg, lvl):
         print lvl, ': ', msg
 
-    def _log(self, msg, lvl):
-        self._log_func('[{0}] @"{1}": {2}'.format(self._name, inspect.stack()[2][3], msg), lvl)
+    def _log(self, tmpl, msg, lvl):
+        self._log_func(tmpl.format(self._name, msg), lvl)
+
+    def log(self, msg, lvl):
+        self._log('[{0}]: {1}', msg, lvl)
 
     def info(self, msg):
-        self._log(msg, self._INFO)
+        self.log(msg, self._INFO)
 
     def warning(self, msg):
-        self._log(msg, self._WARN)
+        self.log(msg, self._WARN)
 
     def error(self, msg):
-        self._log(msg, self._ERR)
+        self.log(msg, self._ERR)
 
     def debug(self, msg):
-        self._log(msg, self._DEBUG)
+        fle = inspect.stack()[1][1].split('/')[-1]
+        line = inspect.stack()[1][2]
+        self._log('[{{0}} @{0}, line {1}]: {{1}}'.format(fle, line), msg, self._DEBUG)
