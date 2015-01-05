@@ -44,4 +44,4 @@ class Logger(object):
     def debug(self, msg):
         fle = inspect.stack()[1][1].split('/')[-1]
         line = inspect.stack()[1][2]
-        self._log('[{{0}} @{0}, line {1}]: {{1}}'.format(fle, line), msg, self._DEBUG)
+        self._log('[{{0}} ({0}, line {1})]: {{1}}'.format(fle, line), msg, self._DEBUG)
