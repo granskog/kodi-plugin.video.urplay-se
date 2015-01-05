@@ -10,31 +10,39 @@ from parsedom import parseDOM
 log = util.Logger()
 
 class BaseHandler(object):
+    def __init__(self, plugin):
+        self._plugin = plugin
+
     @property
     def URL(self):
         return 'http://urplay.se'
 
-    def __init__(self, plugin):
-        self._plugin = plugin
-
     def process(self):
         pass
 
-class StaticItems(BaseHandler):
-    _items = []
-    def process(self):
-        log.debug('Fetching {0} page!'.format(type(self).__name__))
-        
-        localize = self._plugin.localize
-        for langCode, uri in self._items:
-            url = self._plugin.baseURL + uri
-            li = xbmcgui.ListItem(localize(langCode), iconImage='DefaultFolder.png')
-            xbmcplugin.addDirectoryItem(handle = self._plugin.handle, url = url,
-                listitem = li, isFolder = True)
+class Collection(BaseHandler):
+    def _fetch(self):
+        return []
 
+    def process(self):
+        log.info('Fetching videos from "{0}".'.format(self.URL))
+        items = self._fetch()
+        # Unfortunately addDirectoryItems() does not work with generators.
+        # Call list() on the generator object.
+        xbmcplugin.addDirectoryItems(self._plugin.handle, list(items))
         xbmcplugin.endOfDirectory(self._plugin.handle)
 
-class Index(StaticItems):
+class StaticDir(Collection):
+    _items = []
+    def _fetch(self):
+        log.debug('Fetching {0} page!'.format(type(self).__name__))
+        for langCode, uri in self._items:
+            url = self._plugin.baseURL + uri
+            li = xbmcgui.ListItem(self._plugin.localize(langCode),
+                iconImage='DefaultFolder.png')
+            yield url, li, True
+
+class Index(StaticDir):
     _items = [
         # (30100, '/startsida'),
         (30101, '/kategori/Mest-spelade'),
@@ -46,7 +54,7 @@ class Index(StaticItems):
         (30107, '/a-to-o')
     ]
 
-class Categories(StaticItems):
+class Categories(StaticDir):
     _items = [
         (30200, '/kategori/Dokumentar'),
         (30201, '/kategori/Forelasningar-debatt'),
@@ -57,30 +65,48 @@ class Categories(StaticItems):
         (30206, '/kategori/Barn')
     ]
 
-class AToO(StaticItems):
+class AToO(StaticDir):
     _items = [
         (30100, '/')
     ]
 
-class Current(StaticItems):
+class CurrentVideos(StaticDir):
     _items = [
         (30100, '/')
     ]
 
-class Videos(BaseHandler):
-    def process(self, page):
-        log.debug('Fetching a list of videos on "{0}" page!'.format(page))
-
-class PlayVideo(BaseHandler):
+class VideoCollection(Collection):
+    def __init__(self, plugin, path):
+        super(VideoCollection, self).__init__(plugin)
+        self._path = path
+    
     @property
     def URL(self):
-        return super(PlayVideo, self).URL + '/Produkter/'
+        return super(VideoCollection, self).URL + '/' + self._path
 
-    def process(self, id):
+class CurrentVideoCollection(VideoCollection):
+    @property
+    def URL(self):
+        return super(CurrentVideoCollection, self).URL + '/Aktuellt/' + self._path
+
+class TVSeries(VideoCollection):
+    @property
+    def URL(self):
+        return super(TVSeries, self).URL + '/Produkter/' + self._path
+
+class Video(BaseHandler):
+    def __init__(self, plugin, id):
+        super(Video, self).__init__(plugin)
+        self._id = id
+
+    @property
+    def URL(self):
+        return super(Video, self).URL + '/Produkter/' + self._id
+
+    def process(self):
         try:
-            url = self.URL + id
-            log.info('Fetching video info from "{0}".'.format(url))
-            req = requests.get(url)
+            log.info('Fetching video info from "{0}".'.format(self.URL))
+            req = requests.get(self.URL)
             req.raise_for_status()
 
             match = re.search(r'urPlayer\.init\((.*?)\);', req.text)
@@ -93,9 +119,9 @@ class PlayVideo(BaseHandler):
                     'urplay/_definst_/mp4:{vid_file}/'\
                     '{streaming_config[http_streaming][hls_file]}'.format(vid_file = fl, **js)
 
-            li = xbmcgui.ListItem(name = id, path = vidURL)
+            li = xbmcgui.ListItem(name = self._id, path = vidURL)
             log.debug('Playing video from URL: "{0}"'.format(vidURL))
-            # xbmcplugin.setResolvedUrl(self._plugin.handle, True, li)
+            xbmcplugin.setResolvedUrl(self._plugin.handle, True, li)
 
             # TODO: Subtitles!
 

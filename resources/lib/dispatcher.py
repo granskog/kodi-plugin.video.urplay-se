@@ -30,8 +30,8 @@ class Dispatcher(object):
             if match:
 
                 log.debug('Match for: r"{0}". Groups: {1}.'.format(template, match.groups()))
-                h = handlerClass(self._plugin)
-                h.process(*match.groups())
+                h = handlerClass(self._plugin, *match.groups())
+                h.process()
                 break;
 
         else:

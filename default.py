@@ -40,12 +40,12 @@ import resources.lib.urplay as ur
 app = dp.Dispatcher(__plugin__, [
     (r'/?', ur.Index),
     (r'/kategori', ur.Categories),
-    (r'/kategori/([a-zA-Z0-9_\-.~]+)', ur.Videos),
+    (r'/kategori/([a-zA-Z0-9_\-.~]+)', ur.VideoCollection),
     (r'/a-to-o', ur.AToO),
-    (r'/aktuellt', ur.Current),
-    (r'/(aktuellt/[a-zA-Z0-9_\-.~]+)', ur.Videos),
-    (r'/(produkter/[a-zA-Z0-9_\-.~]+)', ur.Videos),
-    (r'/video/([a-zA-Z0-9_\-.~]+)', ur.PlayVideo)
+    (r'/tv-serie/([a-zA-Z0-9_\-.~]+)', ur.TVSeries),
+    (r'/aktuellt', ur.CurrentVideos),
+    (r'/aktuellt/([a-zA-Z0-9_\-.~]+)', ur.CurrentVideoCollection),
+    (r'/video/([a-zA-Z0-9_\-.~]+)', ur.Video)
 ])
 
 # Run the addon application.
