@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import inspect
+import urllib
 
 class Singleton(type):
     _instances = {}
@@ -45,3 +46,32 @@ class Logger(object):
         fle = inspect.stack()[1][1].split('/')[-1]
         line = inspect.stack()[1][2]
         self._log('[{{0}} ({0}, line {1})]: {{1}}'.format(fle, line), msg, self._DEBUG)
+
+class URL(object):
+    def __init__(self, url = None, **kwargs):
+        if isinstance(url, URL):
+            self.url  = url.url
+            self.args = url.args
+        else:
+            self.url = url or ''
+            self.args = kwargs
+
+    def __add__(self, rhs):
+        args = dict(self.args)
+        args.update(rhs.args)
+        return URL(self.url + rhs.url, **args)
+
+    def __str__(self):
+        return self.url + '?' + urllib.urlencode(self.args)
+
+    def extend(self, path):
+        self.url = self.url + path
+       
+class URLBuilder(type):
+    def __init__(cls, name, bases, attrs):
+        urlRoot = getattr(bases[0], "url", None)
+        if not 'url' in attrs:
+            cls.url = URL(urlRoot)
+        elif urlRoot is not None:
+            cls.url = urlRoot + cls.url
+        super(URLBuilder, cls).__init__(name, bases, attrs)

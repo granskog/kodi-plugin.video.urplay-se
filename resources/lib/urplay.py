@@ -3,19 +3,28 @@ import xbmcgui
 import xbmcplugin
 import requests
 import json
-import urllib
-import util
+
+from util import Logger, URL, URLBuilder
 from parsedom import parseDOM
 
-log = util.Logger()
+log = Logger()
 
 class BaseHandler(object):
+    __metaclass__ = URLBuilder
+    url = URL('http://urplay.se')
+    _html = None
+
     def __init__(self, plugin):
         self._plugin = plugin
 
     @property
-    def URL(self):
-        return 'http://urplay.se'
+    def html(self):
+        if not self._html:
+            log.info('Fetching html page "{0}".'.format(self.url))
+            # self._response = requests.get(self.url())
+            # self._response.raise_for_status()
+            # self._html = self._response.text
+        return self._html
 
     def process(self):
         pass
@@ -25,7 +34,6 @@ class Collection(BaseHandler):
         return []
 
     def process(self):
-        log.info('Fetching videos from "{0}".'.format(self.URL))
         items = self._fetch()
         # Unfortunately addDirectoryItems() does not work with generators.
         # Call list() on the generator object.
@@ -35,9 +43,9 @@ class Collection(BaseHandler):
 class StaticDir(Collection):
     _items = []
     def _fetch(self):
-        log.debug('Fetching {0} page!'.format(type(self).__name__))
-        for langCode, uri in self._items:
-            url = self._plugin.baseURL + uri
+        log.debug('Printing the {0} page.'.format(type(self).__name__))
+        for langCode, path in self._items:
+            url = self._plugin.baseURL + path
             li = xbmcgui.ListItem(self._plugin.localize(langCode),
                 iconImage='DefaultFolder.png')
             yield url, li, True
@@ -76,45 +84,36 @@ class CurrentShows(StaticDir):
     ]
 
 class VideoCollection(Collection):
+    url = URL('/', product_type = 'programtv')
     def __init__(self, plugin, path):
         super(VideoCollection, self).__init__(plugin)
-        self._path = path
-    
-    @property
-    def URL(self):
-        return super(VideoCollection, self).URL + '/' + self._path
+        self.url.extend(path)
+
+    def _fetch(self):
+        text = self.html
+        return []
 
 class CurrentVideos(VideoCollection):
-    @property
-    def URL(self):
-        return super(CurrentVideos, self).URL + '/Aktuellt/' + self._path
+    url = URL('/Aktuellt/')
 
 class Series(VideoCollection):
-    @property
-    def URL(self):
-        return super(Series, self).URL + '/Produkter/' + self._path
+    url = URL('/Produkter/')
 
 class Video(BaseHandler):
+    url = URL('/Produkter/')
     def __init__(self, plugin, id):
         super(Video, self).__init__(plugin)
         self._id = id
-
-    @property
-    def URL(self):
-        return super(Video, self).URL + '/Produkter/' + self._id
+        self.url.extend(id)
 
     def process(self):
         try:
-            log.info('Fetching video info from "{0}".'.format(self.URL))
-            req = requests.get(self.URL)
-            req.raise_for_status()
-
-            match = re.search(r'urPlayer\.init\((.*?)\);', req.text)
+            match = re.search(r'urPlayer\.init\((.*?)\);', self.html)
             if match is None:
-                raise Exception('No JSON data found')
+                raise ValueError('No JSON data found')
 
             js = json.loads(match.group(1))
-            fl = js['file_hd'] if j['file_hd'] != '' else j['file_flash']
+            fl = js['file_hd'] if js['file_hd'] != '' else js['file_flash']
             vidURL = 'http://{streaming_config[streamer][redirect]}/'\
                     'urplay/_definst_/mp4:{vid_file}/'\
                     '{streaming_config[http_streaming][hls_file]}'.format(vid_file = fl, **js)
@@ -127,4 +126,5 @@ class Video(BaseHandler):
 
         except Exception as e:
             xbmcplugin.setResolvedUrl(self._plugin.handle, False, None)
-            log.error('Unable to fetch video info from url "{0}" ({1}).'.format(url, e))
+            log.error('Unable to fetch video info from url "{0}" ({1}).'.format(self.url, e))
+            raise
