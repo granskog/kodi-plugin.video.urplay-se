@@ -62,7 +62,7 @@ class URL(object):
         return URL(self.url + rhs.url, **args)
 
     def __str__(self):
-        return self.url + '?' + urllib.urlencode(self.args)
+        return urllib.quote(self.url, safe='/:') + '?' + urllib.urlencode(self.args)
 
     def extend(self, path):
         self.url = self.url + path
