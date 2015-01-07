@@ -35,9 +35,7 @@ class Dispatcher(object):
                     h.process()
                 except Exception as e:
                     if not h.onException(e):
-                        # log.debug(traceback.format_exc())
-                    # else:
-                        raise e
+                        raise
                 break;
 
         else:
