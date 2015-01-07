@@ -12,8 +12,9 @@ class Dispatcher(object):
     def dispatch(self, url):
         if self._routes is None: return
 
-        # Separate the base URL
-        uri = url.split(self._plugin.baseURL)[-1]
+        path = url
+        if isinstance(path, util.URL):
+            path = url.url
 
         for template, handlerClass in self._routes:
 
@@ -24,13 +25,13 @@ class Dispatcher(object):
             if not template.endswith('$'):
                 template += '$'
 
-            log.debug('Testing template: r"{0}" against URL: "{1}"'.format(template, uri))
-            match = re.match(template, uri)
+            log.debug('Testing template: r"{0}" against path: "{1}"'.format(template, path))
+            match = re.match(template, path)
 
             if match:
 
                 log.debug('Match for: r"{0}". Groups: {1}.'.format(template, match.groups()))
-                h = handlerClass(self._plugin, *match.groups())
+                h = handlerClass(self._plugin, url)
                 try:
                     h.process()
                 except Exception as e:

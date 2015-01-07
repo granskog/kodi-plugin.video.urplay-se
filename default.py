@@ -17,9 +17,9 @@ __plugin__.handle = int(sys.argv[1])
 __plugin__.name = __addon__.getAddonInfo('name')
 __plugin__.version = __addon__.getAddonInfo('version')
 __plugin__.localize = lambda s: __addon__.getLocalizedString(s).encode('utf-8')
-__plugin__.baseURL = 'plugin://{0}'.format(__addon__.getAddonInfo('id'))
-__plugin__.url = sys.argv[0]
-__plugin__.args = urlparse.parse_qs(sys.argv[2][1:])
+__plugin__.urlRootStr = 'plugin://{0}'.format(__addon__.getAddonInfo('id'))
+__plugin__.path = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
+                           **urlparse.parse_qs(sys.argv[2][1:]))
 
 xbmcplugin.setContent(__plugin__.handle, 'tvshows')
 
@@ -31,7 +31,7 @@ log = util.Logger(xbmc.log,
         lvlWarn = xbmc.LOGWARNING,
         lvlErr = xbmc.LOGERROR)
 log.info('Plugin started! Name: {0}. Handle: {1}.'.format(__plugin__.name, __plugin__.handle))
-log.debug('Plugin base URL: ' + __plugin__.baseURL)
+log.debug('Plugin base URL: ' + __plugin__.urlRootStr)
 
 import resources.lib.dispatcher as dp
 import resources.lib.urplay as ur
@@ -39,15 +39,15 @@ import resources.lib.urplay as ur
 # Associate the plugin URLs to respective handler.
 app = dp.Dispatcher(__plugin__, [
     (r'/?', ur.Index),
-    (r'/category', ur.Categories),
-    (r'/category/([^/]+)', ur.Videos),
-    (r'/programmes', ur.ProgrammesAToZ),
-    (r'/programmes/([^/]+)', ur.Programmes),
-    (r'/current', ur.CurrentShows),
-    (r'/current/([^/]]+)', ur.CurrentVideos),
-    (r'/video/([^/]+)', ur.Video)
+    (r'/Kategorier', ur.Categories),
+    (r'/A-O', ur.AllProgrammes),
+    (r'/Aktuellt', ur.CurrentShows),
+    (r'/Aktuellt/[^/]+', ur.Videos),
+    (r'/Series/.+', ur.Series),
+    (r'/Produkter/[^/]+', ur.Video),
+    (r'/(?:[^/]+/)*(?:[^/]+)?', ur.Videos)
 ])
 
 # Run the addon application.
-log.debug('Dispatching URL: ' + __plugin__.url)
-app.dispatch(__plugin__.url)
+log.debug('Dispatching path: ' + str(__plugin__.path))
+app.dispatch(__plugin__.path)

@@ -10,9 +10,10 @@ from parsedom import parseDOM, stripTags
 from parsedom import log as parsedomLog
 
 log = Logger()
-# "Patch" parsedom to use our debugging.
-# Note that printing debug to xbmc seriously bloat
-# the log file and slow things down. Use only when develop.
+
+# Monkeypatch parsedom to use our debugging system.
+# Note that printing debug to xbmc seriously bloat the log file
+# and slow things down.
 __DEBUG_PARSEDOM__ = False
 def pLog(dsc, lvl):
     if __DEBUG_PARSEDOM__: log.debug(dsc)
@@ -20,11 +21,13 @@ parsedomLog = pLog
 
 class BaseHandler(object):
     __metaclass__ = URLBuilder
+    
     url = URL('http://urplay.se')
     _html = None
 
-    def __init__(self, plugin):
+    def __init__(self, plugin, path):
         self._plugin = plugin
+        self.url += path
 
     @property
     def html(self):
@@ -50,13 +53,15 @@ class Directory(BaseHandler):
         return []
 
     def process(self):
+        log.debug('Start updating folder for "{0}".'.format(self._plugin.path))
+        
         items = self._fetch()
-        log.debug('Start updating folder for "{0}".'.format(self._plugin.url))
         # Unfortunately addDirectoryItems() does not work with generators.
         # It expect a list, so call list() on the generator object.
         xbmcplugin.addDirectoryItems(self._plugin.handle, list(items))
         xbmcplugin.endOfDirectory(self._plugin.handle)
-        log.debug('Done updating folder for "{0}".'.format(self._plugin.url))
+
+        log.debug('Done updating folder for "{0}".'.format(self._plugin.path))
 
     def onException(self, e):
         xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
@@ -67,56 +72,65 @@ class StaticDir(Directory):
     def _fetch(self):
         log.debug('Printing the {0} page.'.format(type(self).__name__))
         for langCode, path in self._items:
-            url = self._plugin.baseURL + path
-            li = xbmcgui.ListItem(self._plugin.localize(langCode),
-                iconImage='DefaultFolder.png')
+            url = self._plugin.urlRootStr + path
+            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+            li.setLabel(self._plugin.localize(langCode))
             yield url, li, True
 
 class Index(StaticDir):
     _items = [
-        # (30100, '/startsida'),
-        (30101, '/category/Mest-spelade'),
-        (30102, '/category/Mest-delade'),
-        (30103, '/category/Senaste'),
-        (30104, '/category/Sista-chansen'),
-        (30105, '/category'),
-        (30106, '/current'),
-        (30107, '/programmes')
+        # (30100, '/Start'),
+        (30101, '/Mest-spelade'),
+        (30102, '/Mest-delade'),
+        (30103, '/Senaste'),
+        (30104, '/Sista-chansen'),
+        (30105, '/Kategorier'),
+        (30106, '/Aktuellt'),
+        (30107, '/A-O')
     ]
 
 class Categories(StaticDir):
     _items = [
-        (30200, '/category/Dokumentar'),
-        (30201, '/category/Forelasningar-debatt'),
-        (30202, '/category/Vetenskap'),
-        (30203, '/category/Kultur-historia'),
-        (30204, '/category/Samhalle'),
-        (30205, '/category/Sprak'),
-        (30206, '/category/Barn')
+        (30200, '/Dokumentar'),
+        (30201, '/Forelasningar-debatt'),
+        (30202, '/Vetenskap'),
+        (30203, '/Kultur-historia'),
+        (30204, '/Samhalle'),
+        (30205, '/Sprak'),
+        (30206, '/Barn')
     ]
 
-class ProgrammesAToZ(StaticDir):
-    _items = [
-        (30100, '/')
-    ]
+class AllProgrammes(Directory):
+    def _fetch(self):
+        section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})[0]
+        programs = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section)
+        for title, href in programs:
+            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+            li.setLabel(title)
+            # Add a path step to the url because otherwise we can't distinguish between a series,
+            # which is a collection of videos, or a single video to play.
+            url = self._plugin.urlRootStr + '/Series' + href
+            yield url, li, True
 
-class CurrentShows(StaticDir):
-    _items = [
-        (30100, '/')
-    ]
+class CurrentShows(Directory):
+    def _fetch(self):
+        headings = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
+        for heading in headings:
+            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+            li.setLabel(parseDOM(heading, 'h2')[0])
+            li.setInfo('Video', {'plot' : parseDOM(heading, 'p')[0]})
+            url = self._plugin.urlRootStr + parseDOM(heading, 'a',
+                attrs = {'class': r'button[\d]?'}, ret = 'href')[0]
+            yield url, li, True
 
 class Videos(Directory):
-    url = URL('/', product_type = 'programtv')
-    def __init__(self, plugin, path):
-        super(Videos, self).__init__(plugin)
-        self.url.extend(path)
+    url = URL('', product_type = 'programtv')
 
     def _fetch(self):
-        videos = parseDOM(self.html, "section", attrs = {"class": "tv"})
+        videos = parseDOM(self.html, "section", attrs = {'class': 'tv'})
         for video in videos:
             li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
-            url = '{0}/video/{1}'.format(self._plugin.baseURL,
-                parseDOM(video, 'a', ret = 'id')[0])
+            url = self._plugin.urlRootStr + parseDOM(video, 'a', ret = 'href')[0]
 
             videoInfo = parseDOM(video, 'a')[0]
             li.setThumbnailImage(parseDOM(videoInfo, 'img', ret = 'src')[0].replace('1_t.jpg', '1_l.jpg', 1))
@@ -142,28 +156,26 @@ class Videos(Directory):
 
         # TODO Pagination!
 
-    _cnvDurRegex = re.compile(r'^(?:(\d+):)?(\d{1,2}):(\d{1,2})$')
+    _durRegex = re.compile(r'^(?:(\d+):)?([0-5]?[0-9]):([0-5]?[0-9])$')
     def convertDuration(self, dur):
         # UR Play format is h:mm:ss. Kodi want duration in minutes only.
-        match = self._cnvDurRegex.match(dur)
+        match = self._durRegex.match(dur)
         if match:
             h, m, s = map(float, match.groups('0'))
             return str(int(round(h*60 + m + s/60)))
         return '0'
 
-class CurrentVideos(Videos):
-    url = URL('/Aktuellt/')
-
-class Programmes(Videos):
-    url = URL('/Produkter/')
+class Series(Videos):
+    def __init__(self, plugin, path):
+        # UR Play has the same path for both single video items
+        # and a collection of videos of a series. Therefore we added a
+        # path ("/Series") in the A-O handler above. Before we can fetch the
+        # real URL we need to remove this part from the path received in the
+        # constructor. That is done with the slice below.
+        path.url = path.url[7:]
+        super(Series, self).__init__(plugin, path)
 
 class Video(BaseHandler):
-    url = URL('/Produkter/')
-    def __init__(self, plugin, id):
-        super(Video, self).__init__(plugin)
-        self._id = id
-        self.url.extend(id)
-
     def process(self):
         match = re.search(r'urPlayer\.init\((.*?)\);', self.html)
         if match is None:
