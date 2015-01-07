@@ -85,3 +85,9 @@ msgstr ""
 msgctxt "#30206"
 msgid "Children"
 msgstr ""
+
+# Other strings.
+
+msgctxt "#30300"
+msgid "Aired"
+msgstr ""

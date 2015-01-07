@@ -51,9 +51,9 @@ class Directory(BaseHandler):
 
     def process(self):
         items = self._fetch()
-        # Unfortunately addDirectoryItems() does not work with generators.
-        # Call list() on the generator object.
         log.debug('Start updating folder for "{0}".'.format(self._plugin.url))
+        # Unfortunately addDirectoryItems() does not work with generators.
+        # It expect a list, so call list() on the generator object.
         xbmcplugin.addDirectoryItems(self._plugin.handle, list(items))
         xbmcplugin.endOfDirectory(self._plugin.handle)
         log.debug('Done updating folder for "{0}".'.format(self._plugin.url))
@@ -132,7 +132,8 @@ class Videos(Directory):
             info = {}
             info['aired'] = safeListGet(parseDOM(videoInfo, 'time', ret = 'datetime'), 0, '')[:10]
             info['duration'] = self.convertDuration(safeListGet(parseDOM(videoInfo, 'dd'), 0, ''))
-            info['plot'] = parseDOM(videoInfo, 'p')[0]
+            info['plot'] = '{0}: {1}.\n{2}'.format(self._plugin.localize(30300),
+                info['aired'], parseDOM(videoInfo, 'p')[0].encode('utf-8'))
             info['title'] = title
             info['tvshowtitle'] = seriesTitle
             li.setInfo('Video', info)
