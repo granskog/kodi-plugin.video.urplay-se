@@ -146,8 +146,11 @@ class Videos(Directory):
             info = {}
             info['aired'] = safeListGet(parseDOM(videoInfo, 'time', ret = 'datetime'), 0, '')[:10]
             info['duration'] = self.convertDuration(safeListGet(parseDOM(videoInfo, 'dd'), 0, ''))
-            info['plot'] = '{0}: {1}.\n{2}'.format(self._plugin.localize(30300),
-                info['aired'], parseDOM(videoInfo, 'p')[0].encode('utf-8'))
+
+            aired = '' if not info['aired'] else '{0}: {1}.\n'.format(self._plugin.localize(30300),
+                info['aired'])
+
+            info['plot'] = aired + parseDOM(videoInfo, 'p')[0].encode('utf-8')
             info['title'] = title
             info['tvshowtitle'] = seriesTitle
             li.setInfo('Video', info)
