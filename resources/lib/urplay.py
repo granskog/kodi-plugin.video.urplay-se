@@ -103,10 +103,9 @@ class Categories(StaticDir):
 class AllProgrammes(Directory):
     def _fetch(self):
         section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})[0]
-        programs = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section)
-        for title, href in programs:
-            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
-            li.setLabel(title)
+        programmes = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section)
+        for title, href in programmes:
+            li = xbmcgui.ListItem(title, iconImage='DefaultFolder.png')
             # Add a path step to the url because otherwise we can't distinguish between a series,
             # which is a collection of videos, or a single video to play.
             url = self._plugin.urlRootStr + '/Series' + href
@@ -133,6 +132,9 @@ class Videos(Directory):
             url = self._plugin.urlRootStr + parseDOM(video, 'a', ret = 'href')[0]
 
             videoInfo = parseDOM(video, 'a')[0]
+            # It seems that there is a javascript that updates the thumbnail image link
+            # to a high resolution one based on your screen size. Therefore we need to manually
+            # update each thumbnail link.
             li.setThumbnailImage(parseDOM(videoInfo, 'img', ret = 'src')[0].replace('1_t.jpg', '1_l.jpg', 1))
 
             # Fetch video title and check if the video is part of a series.
@@ -157,7 +159,29 @@ class Videos(Directory):
             li.setProperty('IsPlayable', 'true');
             yield url, li, False
 
-        # TODO Pagination!
+        # Add a 'next page' item if pagination is available.
+        nav = parseDOM(self.html, "nav", attrs = {"class": "pagination"})
+        if nav:
+            log.debug('Found nav item on page!')
+            pages = re.findall(r'<a href=".*>(\d+)</a>', nav[0])
+            if pages:
+                log.debug('Found the list of pages: ' + repr(pages))
+                p = self._plugin.path
+                try:
+                    totalpages = int(pages[-1])
+                    page = int(p.args.get('page', 1))
+                except ValueError:
+                    log.error('Unable to convert "{0}" & "{1}" into integer.').format(pages[-1],
+                        p.args.get('page'))
+                else:
+                    if page < totalpages:
+                        url = self._plugin.urlRootStr + str(URL(p, page = page + 1))
+                        li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+                        txt = self._plugin.localize(30301)
+                        label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
+                        li.setLabel(label)
+                        log.debug('Adding pagination ({0}/{1}) to: "{2}".'.format(page, totalpages, url))
+                        yield url, li, True
 
     _durRegex = re.compile(r'^(?:(\d+):)?([0-5]?[0-9]):([0-5]?[0-9])$')
     def convertDuration(self, dur):

@@ -91,3 +91,7 @@ msgstr ""
 msgctxt "#30300"
 msgid "Aired"
 msgstr ""
+
+msgctxt "#30301"
+msgid "Next Page"
+msgstr ""

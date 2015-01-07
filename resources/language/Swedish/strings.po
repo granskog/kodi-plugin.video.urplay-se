@@ -91,3 +91,7 @@ msgstr "Barn"
 msgctxt "#30300"
 msgid "Aired"
 msgstr "Sändes"
+
+msgctxt "#30301"
+msgid "Next Page"
+msgstr "Nästa sida"

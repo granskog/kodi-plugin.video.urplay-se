@@ -51,7 +51,8 @@ class URL(object):
     def __init__(self, url = None, **kwargs):
         if isinstance(url, URL):
             self.url  = url.url
-            self.args = url.args
+            self.args = dict(url.args)
+            self.args.update(kwargs)
         else:
             self.url = url or ''
             self.args = kwargs
