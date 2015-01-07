@@ -31,7 +31,13 @@ class Dispatcher(object):
 
                 log.debug('Match for: r"{0}". Groups: {1}.'.format(template, match.groups()))
                 h = handlerClass(self._plugin, *match.groups())
-                h.process()
+                try:
+                    h.process()
+                except Exception as e:
+                    if not h.onException(e):
+                        # log.debug(traceback.format_exc())
+                    # else:
+                        raise e
                 break;
 
         else:

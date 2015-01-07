@@ -62,10 +62,13 @@ class URL(object):
         return URL(self.url + rhs.url, **args)
 
     def __str__(self):
-        return urllib.quote(self.url, safe='/:') + '?' + urllib.urlencode(self.args)
+        args = ''
+        if self.args:
+            args = '?' + urllib.urlencode(self.args)
+        return urllib.quote(self.url, safe='/:') + args
 
     def extend(self, path):
-        self.url = self.url + path
+        self.url += path
        
 class URLBuilder(type):
     def __init__(cls, name, bases, attrs):
@@ -75,3 +78,9 @@ class URLBuilder(type):
         elif urlRoot is not None:
             cls.url = urlRoot + cls.url
         super(URLBuilder, cls).__init__(name, bases, attrs)
+
+def safeListGet (l, idx, default):
+  try:
+    return l[idx]
+  except IndexError:
+    return default

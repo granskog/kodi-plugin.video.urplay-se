@@ -30,7 +30,7 @@ log = util.Logger(xbmc.log,
         lvlInfo = xbmc.LOGINFO,
         lvlWarn = xbmc.LOGWARNING,
         lvlErr = xbmc.LOGERROR)
-log.info('Plugin started!')
+log.info('Plugin started! Name: {0}. Handle: {1}.'.format(__plugin__.name, __plugin__.handle))
 log.debug('Plugin base URL: ' + __plugin__.baseURL)
 
 import resources.lib.dispatcher as dp
@@ -40,9 +40,9 @@ import resources.lib.urplay as ur
 app = dp.Dispatcher(__plugin__, [
     (r'/?', ur.Index),
     (r'/category', ur.Categories),
-    (r'/category/([^/]+)', ur.VideoCollection),
+    (r'/category/([^/]+)', ur.Videos),
     (r'/programmes', ur.ProgrammesAToZ),
-    (r'/series/([^/]+)', ur.Series),
+    (r'/programmes/([^/]+)', ur.Programmes),
     (r'/current', ur.CurrentShows),
     (r'/current/([^/]]+)', ur.CurrentVideos),
     (r'/video/([^/]+)', ur.Video)
