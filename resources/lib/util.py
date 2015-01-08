@@ -67,8 +67,7 @@ class URL(object):
         args = ''
         if self.args:
             args = '?' + urllib.urlencode(self.args)
-        # return urllib.quote(self.url, safe='/:') + args
-        return self.url + args
+        return urllib.quote(self.url, safe = '/:'.encode('utf-8')) + args
 
     def extend(self, path):
         self.url += path
