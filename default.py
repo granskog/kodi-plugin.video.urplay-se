@@ -43,7 +43,6 @@ app = dp.Dispatcher(__plugin__, [
     (r'/Kategorier', ur.Categories),
     (r'/A-O', ur.AllProgrammes),
     (r'/Aktuellt', ur.CurrentShows),
-    (r'/Aktuellt/[^/]+', ur.Videos),
     (r'/Series/.+', ur.Series),
     (r'/Produkter/[^/]+', ur.Video),
     (r'/(?:[^/]+/)*(?:[^/]+)?', ur.Videos)

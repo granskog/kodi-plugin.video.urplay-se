@@ -164,11 +164,13 @@ class Videos(URPlayDirectory):
                     else:
                         if page < totalpages:
                             url = self._plugin.urlRootStr + str(URL(self._path, page = page + 1))
-                            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
                             txt = self._plugin.localize(30301)
                             label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
+
+                            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
                             li.setLabel(label)
                             log.debug('Adding pagination ({0}/{1}) to: "{2}".'.format(page, totalpages, url))
+
                             yield url, li, True
 
     _durationRegex = re.compile(r'^(?:(\d+):)?([0-5]?[0-9]):([0-5]?[0-9])$')
