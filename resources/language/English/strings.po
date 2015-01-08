@@ -95,3 +95,7 @@ msgstr ""
 msgctxt "#30301"
 msgid "Next Page"
 msgstr ""
+
+msgctxt "#30302"
+msgid "No description"
+msgstr ""

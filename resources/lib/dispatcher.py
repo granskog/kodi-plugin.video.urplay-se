@@ -32,11 +32,7 @@ class Dispatcher(object):
 
                 log.debug('Match for: r"{0}". Groups: {1}.'.format(template, match.groups()))
                 h = handlerClass(self._plugin, url)
-                try:
-                    h.process()
-                except Exception as e:
-                    if not h.onException(e):
-                        raise
+                h.process()
                 break;
 
         else:

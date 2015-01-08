@@ -95,3 +95,7 @@ msgstr "Sändes"
 msgctxt "#30301"
 msgid "Next Page"
 msgstr "Nästa sida"
+
+msgctxt "#30302"
+msgid "No description"
+msgstr "Beskrivning saknas"

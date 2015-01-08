@@ -15,27 +15,22 @@ class BaseHandler(object):
     def process(self):
         raise NotImplementedError
 
-    def onException(self, e):
-        raise NotImplementedError
-
 class Directory(BaseHandler):
     def _fetch(self):
         raise NotImplementedError
 
     def process(self):
         log.debug('Start updating folder for "{0}".'.format(self._path))
-        
-        items = self._fetch()
-        # Unfortunately addDirectoryItems() does not work with generators.
-        # It expect a list, so call list() on the generator object.
-        xbmcplugin.addDirectoryItems(self._plugin.handle, list(items))
-        xbmcplugin.endOfDirectory(self._plugin.handle)
-
-        log.debug('Done updating folder for "{0}".'.format(self._path))
-
-    def onException(self, e):
-        xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
-        return False
+        # Unfortunately xbmcplugin.addDirectoryItems() does not work with generators.
+        # It expects a list, so call list() on the generator object.
+        items = list(self._fetch())
+        if items:
+            xbmcplugin.addDirectoryItems(self._plugin.handle, items)
+            xbmcplugin.endOfDirectory(self._plugin.handle)
+            log.debug('Done updating folder for "{0}".'.format(self._path))
+        else:
+            log.warning('No items retreived for path: '.format(self._path))
+            xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
 
 class URLBuilder(type):
     def __init__(cls, name, bases, attrs):
@@ -54,8 +49,12 @@ class WebEnabled(object):
     def html(self):
         if not self._html:
             log.info('Fetching content from "{0}".'.format(self.url))
-            request = urllib2.Request(str(self.url))
-            response = urllib2.urlopen(request)
-            self._html = response.read()
-            log.debug('Received response, ok!')
+            try:
+                request = urllib2.Request(str(self.url))
+                response = urllib2.urlopen(request)
+            except (urllib2.URLError, urllib2.HTTPError) as e:
+                log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
+            else:
+                self._html = response.read()
+                log.debug('Received response, ok!')
         return self._html
