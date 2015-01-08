@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import xbmcgui
 import xbmcplugin
 import json
@@ -7,17 +8,17 @@ import re
 from interface import *
 from util import Logger, safeListGet
 from parsedom import parseDOM, stripTags
-from parsedom import log as parsedomLog
 
 log = Logger()
 
 # Monkeypatch parsedom to use our debugging system.
 # Note that printing debug to xbmc seriously bloat the log file
 # and slow things down.
+import parsedom
 __DEBUG_PARSEDOM__ = False
 def pLog(dsc, lvl):
     if __DEBUG_PARSEDOM__: log.debug(dsc)
-parsedomLog = pLog
+parsedom.log = pLog
 
 class StaticDir(Directory):
     _items = []
@@ -138,7 +139,7 @@ class Videos(URPlayDirectory):
                     aired = '{0}: {1}.\n'.format(self._plugin.localize(30300), info['aired'])
 
                 noPlot = '-'+self._plugin.localize(30302)+'-'
-                plot = safeListGet(parseDOM(videoInfo, 'p'), 0,noPlot).encode('utf-8')
+                plot = safeListGet(parseDOM(videoInfo, 'p'), 0,noPlot)
                 info['plot'] = aired + (plot or noPlot)
 
                 info['duration'] = self.convertDuration(safeListGet(parseDOM(videoInfo, 'dd'), 0, ''))

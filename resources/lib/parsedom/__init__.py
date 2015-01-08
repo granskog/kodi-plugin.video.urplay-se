@@ -42,7 +42,7 @@ def parseDOM(html, name=u"", attrs={}, ret=False):
         Attribute in element to return value of. If not set(or False), returns
         content of DOM element.
     :type ret:
-        string
+        list of strings
     """
     log("Name: " + repr(name) + " - Attrs:" + repr(attrs) + " - Ret: " + repr(ret) + " - HTML: " + str(type(html)), 3)
 
@@ -62,21 +62,25 @@ def parseDOM(html, name=u"", attrs={}, ret=False):
         html = [html]
     elif not isinstance(html, list):
         log("Input isn't list or string/unicode.")
-        return u""
+        # For consistency, return empty list.
+        return []
 
     if not name.strip():
         log("Missing tag name")
-        return u""
+        return []
 
     ret_lst = []
+    reg = re.compile(r'(<[^>]*?\n[^>]*?>)')
     for item in html:
-        temp_item = re.compile('(<[^>]*?\n[^>]*?>)').findall(item)
+        temp_item = reg.findall(item)
         for match in temp_item:
             item = item.replace(match, match.replace("\n", " "))
 
         lst = _getDOMElements(item, name, attrs)
 
-        if isinstance(ret, str):
+        # Was "if isinstance(ret, str)" the line below. This broke when ret is e.g. unicode.
+        # Just check if it's true since it is set to False if argument not.
+        if ret:
             log("Getting attribute %s content for %s matches " % (ret, len(lst) ), 3)
             lst2 = []
             for match in lst:

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import sys
 import xbmc
 import xbmcplugin
@@ -14,10 +15,10 @@ __plugin__ = Plugin()
 __addon__ = xbmcaddon.Addon()
 
 __plugin__.handle = int(sys.argv[1])
-__plugin__.name = __addon__.getAddonInfo('name')
-__plugin__.version = __addon__.getAddonInfo('version')
-__plugin__.localize = lambda s: __addon__.getLocalizedString(s).encode('utf-8')
-__plugin__.urlRootStr = 'plugin://{0}'.format(__addon__.getAddonInfo('id'))
+__plugin__.name = __addon__.getAddonInfo('name').decode('utf-8')
+__plugin__.version = __addon__.getAddonInfo('version').decode('utf-8')
+__plugin__.localize = lambda s: __addon__.getLocalizedString(s)
+__plugin__.urlRootStr = 'plugin://{0}'.format(__addon__.getAddonInfo('id').decode('utf-8'))
 
 __path__ = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
                 **dict(urlparse.parse_qsl(sys.argv[2][1:])))
@@ -25,7 +26,8 @@ __path__ = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
 xbmcplugin.setContent(__plugin__.handle, 'tvshows')
 
 # Setup the logger before any modules that might use it are imported.
-log = util.Logger(xbmc.log,
+# Kodi logging does not support Unicode, so encode to UTF-8.
+log = util.Logger(lambda m, l: xbmc.log(m.encode('utf-8'), l),
         name = __plugin__.name + ' v' + __plugin__.version,
         lvlDeb = xbmc.LOGDEBUG,
         lvlInfo = xbmc.LOGINFO,

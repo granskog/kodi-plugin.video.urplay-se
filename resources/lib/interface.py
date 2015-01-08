@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import urllib2
 import xbmcplugin
 
@@ -52,9 +53,18 @@ class WebEnabled(object):
             try:
                 request = urllib2.Request(str(self.url))
                 response = urllib2.urlopen(request)
-            except (urllib2.URLError, urllib2.HTTPError) as e:
+            except (urllib2.URLError, urllib2.HTTPError), e:
                 log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
-            else:
-                self._html = response.read()
-                log.debug('Received response, ok!')
+                return None
+            charset = response.headers['content-type'].split('charset=')[-1]
+            try:
+                self._html = response.read().decode(charset)
+            except LookupError:
+                log.error('Unknown charset ({0}) in header, trying utf-8.'.format(charset))
+                try:
+                    self._html = response.read().decode('utf-8')
+                except UnicodeError:
+                    log.error('Unable decode content using utf-8.')
+                    return None
+            log.debug('Received response, ok!')
         return self._html

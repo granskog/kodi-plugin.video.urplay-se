@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import inspect
 import urllib
 
@@ -66,7 +67,8 @@ class URL(object):
         args = ''
         if self.args:
             args = '?' + urllib.urlencode(self.args)
-        return urllib.quote(self.url, safe='/:') + args
+        # return urllib.quote(self.url, safe='/:') + args
+        return self.url + args
 
     def extend(self, path):
         self.url += path
