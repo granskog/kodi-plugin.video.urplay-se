@@ -2,10 +2,10 @@
 import xbmcgui
 import xbmcplugin
 import json
-import urllib2
 import re
 
-from util import Logger, URL, URLBuilder, safeListGet
+from interface import *
+from util import Logger, safeListGet
 from parsedom import parseDOM, stripTags
 from parsedom import log as parsedomLog
 
@@ -18,54 +18,6 @@ __DEBUG_PARSEDOM__ = False
 def pLog(dsc, lvl):
     if __DEBUG_PARSEDOM__: log.debug(dsc)
 parsedomLog = pLog
-
-class BaseHandler(object):
-    __metaclass__ = URLBuilder
-    
-    url = URL('http://urplay.se')
-    _html = None
-
-    def __init__(self, plugin, path):
-        self._plugin = plugin
-        self.url += path
-
-    @property
-    def html(self):
-        if not self._html:
-            log.info('Fetching content from "{0}".'.format(self.url))
-            request = urllib2.Request(str(self.url))
-            response = urllib2.urlopen(request)
-            self._html = response.read()
-            log.debug('Received response, ok!')
-        return self._html
-
-    def process(self):
-        pass
-
-    def onException(self, e):
-        if isinstance(e, (urllib2.URLError, urllib2.HTTPError)):
-            log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
-            return True
-        return False
-
-class Directory(BaseHandler):
-    def _fetch(self):
-        return []
-
-    def process(self):
-        log.debug('Start updating folder for "{0}".'.format(self._plugin.path))
-        
-        items = self._fetch()
-        # Unfortunately addDirectoryItems() does not work with generators.
-        # It expect a list, so call list() on the generator object.
-        xbmcplugin.addDirectoryItems(self._plugin.handle, list(items))
-        xbmcplugin.endOfDirectory(self._plugin.handle)
-
-        log.debug('Done updating folder for "{0}".'.format(self._plugin.path))
-
-    def onException(self, e):
-        xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
-        return super(Directory, self).onException(e)
 
 class StaticDir(Directory):
     _items = []
@@ -100,7 +52,23 @@ class Categories(StaticDir):
         (30206, '/Barn')
     ]
 
-class AllProgrammes(Directory):
+class URPlay(BaseHandler, WebEnabled):
+    url = URL('http://urplay.se')
+
+    def __init__(self, plugin, path):
+        self.url += path
+        super(URPlay, self).__init__(plugin, path)
+
+    def onException(self, e):
+        if isinstance(e, (urllib2.URLError, urllib2.HTTPError)):
+            log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
+            return True
+        return False
+
+class URPlayDirectory(URPlay, Directory):
+    pass
+
+class AllProgrammes(URPlayDirectory):
     def _fetch(self):
         section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})[0]
         programmes = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section)
@@ -111,7 +79,7 @@ class AllProgrammes(Directory):
             url = self._plugin.urlRootStr + '/Series' + href
             yield url, li, True
 
-class CurrentShows(Directory):
+class CurrentShows(URPlayDirectory):
     def _fetch(self):
         headings = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
         for heading in headings:
@@ -122,7 +90,7 @@ class CurrentShows(Directory):
                 attrs = {'class': r'button[\d]?'}, ret = 'href')[0]
             yield url, li, True
 
-class Videos(Directory):
+class Videos(URPlayDirectory):
     url = URL('', product_type = 'programtv')
 
     def _fetch(self):
@@ -166,16 +134,15 @@ class Videos(Directory):
             pages = re.findall(r'<a href=".*>(\d+)</a>', nav[0])
             if pages:
                 log.debug('Found the list of pages: ' + repr(pages))
-                p = self._plugin.path
                 try:
                     totalpages = int(pages[-1])
-                    page = int(p.args.get('page', 1))
+                    page = int(self._path.args.get('page', 1))
                 except ValueError:
                     log.error('Unable to convert "{0}" & "{1}" into integer.').format(pages[-1],
-                        p.args.get('page'))
+                        self._path.args.get('page'))
                 else:
                     if page < totalpages:
-                        url = self._plugin.urlRootStr + str(URL(p, page = page + 1))
+                        url = self._plugin.urlRootStr + str(URL(self._path, page = page + 1))
                         li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
                         txt = self._plugin.localize(30301)
                         label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
@@ -183,10 +150,10 @@ class Videos(Directory):
                         log.debug('Adding pagination ({0}/{1}) to: "{2}".'.format(page, totalpages, url))
                         yield url, li, True
 
-    _durRegex = re.compile(r'^(?:(\d+):)?([0-5]?[0-9]):([0-5]?[0-9])$')
+    _durationRegex = re.compile(r'^(?:(\d+):)?([0-5]?[0-9]):([0-5]?[0-9])$')
     def convertDuration(self, dur):
         # UR Play format is h:mm:ss. Kodi want duration in minutes only.
-        match = self._durRegex.match(dur)
+        match = self._durationRegex.match(dur)
         if match:
             h, m, s = map(float, match.groups('0'))
             return str(int(round(h*60 + m + s/60)))
@@ -202,7 +169,7 @@ class Series(Videos):
         path.url = path.url[7:]
         super(Series, self).__init__(plugin, path)
 
-class Video(BaseHandler):
+class Video(URPlay):
     def process(self):
         match = re.search(r'urPlayer\.init\((.*?)\);', self.html)
         if match is None:

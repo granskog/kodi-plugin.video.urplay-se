@@ -70,18 +70,9 @@ class URL(object):
 
     def extend(self, path):
         self.url += path
-       
-class URLBuilder(type):
-    def __init__(cls, name, bases, attrs):
-        urlRoot = getattr(bases[0], "url", None)
-        if not 'url' in attrs:
-            cls.url = URL(urlRoot)
-        elif urlRoot is not None:
-            cls.url = urlRoot + cls.url
-        super(URLBuilder, cls).__init__(name, bases, attrs)
 
 def safeListGet (l, idx, default):
-  try:
-    return l[idx]
-  except IndexError:
-    return default
+    try:
+        return l[idx]
+    except IndexError:
+        return default

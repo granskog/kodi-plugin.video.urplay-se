@@ -18,8 +18,9 @@ __plugin__.name = __addon__.getAddonInfo('name')
 __plugin__.version = __addon__.getAddonInfo('version')
 __plugin__.localize = lambda s: __addon__.getLocalizedString(s).encode('utf-8')
 __plugin__.urlRootStr = 'plugin://{0}'.format(__addon__.getAddonInfo('id'))
-__plugin__.path = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
-                           **dict(urlparse.parse_qsl(sys.argv[2][1:])))
+
+__path__ = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
+                **dict(urlparse.parse_qsl(sys.argv[2][1:])))
 
 xbmcplugin.setContent(__plugin__.handle, 'tvshows')
 
@@ -49,5 +50,5 @@ app = dp.Dispatcher(__plugin__, [
 ])
 
 # Run the addon application.
-log.debug('Dispatching path: ' + str(__plugin__.path))
-app.dispatch(__plugin__.path)
+log.debug('Dispatching path: ' + str(__path__))
+app.dispatch(__path__)
