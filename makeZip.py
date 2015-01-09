@@ -48,7 +48,7 @@ def makeZippy(argv):
             zippy.write(os.path.join(root, f), path)
 
     zippy.close()
-    print '\o/\n |  Finished writing file "{}"!\n ^'.format(zfName)
+    print '\o/\n |  Made zippy with name "{}"!\n ^'.format(zfName)
 
 if __name__ == '__main__':
 
