@@ -25,11 +25,12 @@ zfName = '{}-{}.zip'.format(_id, _version)
 zippy = zipfile.ZipFile(zfName, 'w',  zipfile.ZIP_DEFLATED)
 
 _excludes = set([_thisFile, zfName])
+_excludeFileTypes = ('.pyo', '.pyc', '.xbt', '.xpr', '.pdf', '.doc', '.dll', '.exe', 'Thumbs.db', 'thumbs.db')
 for root, dirs, files in os.walk('.', topdown = True):
     files = [f for f in files if not f.startswith('.') and f not in _excludes]
     dirs[:] = [d for d in dirs if not d.startswith('.')]
     for f in files:
-        if f.endswith(('.pyo', '.pyc')):
+        if f.endswith(_excludeFileTypes):
             continue
         path = os.path.join(_id, os.path.relpath((os.path.join(root, f))))
         print 'Writing "{}" to zippy with path: '.format(f), path
