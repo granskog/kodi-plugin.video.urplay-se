@@ -78,9 +78,8 @@ def parseDOM(html, name=u"", attrs={}, ret=False):
 
         lst = _getDOMElements(item, name, attrs)
 
-        # Was "if isinstance(ret, str)" the line below. This broke when ret is e.g. unicode.
-        # Just check if it's true since it is set to False if argument not.
-        if ret:
+        # This was "isinstance(ret, str)", which broke when ret is unicode.
+        if isinstance(ret, basestring):
             log("Getting attribute %s content for %s matches " % (ret, len(lst) ), 3)
             lst2 = []
             for match in lst:
