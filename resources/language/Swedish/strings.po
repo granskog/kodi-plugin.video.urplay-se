@@ -16,11 +16,27 @@ msgstr ""
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-# Default strings.
+# Settings.
 
-#msgctxt "#30000"
-#msgid ""
-#msgstr ""
+msgctxt "#30000"
+msgid "General"
+msgstr "Allmänt"
+
+msgctxt "#30001"
+msgid "Advanced"
+msgstr "Avancerat"
+
+msgctxt "#30002"
+msgid "Play HD if Available"
+msgstr "Spela upp i HD om tillgängligt"
+
+msgctxt "#30003"
+msgid "Force Subtitles"
+msgstr "Tvinga undertexter"
+
+msgctxt "#30004"
+msgid "Extra Debug Output"
+msgstr "Slå på extra debugutskrifter"
 
 # Base menu iems.
 

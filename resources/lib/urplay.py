@@ -201,17 +201,31 @@ class Video(URPlay):
                 raise IOError('No JSON data found on webpage')
 
             js = json.loads(match.group(1))
-            fl = js['file_hd'] if js['file_hd'] != '' else js['file_flash']
-            vidURL = 'http://{streaming_config[streamer][redirect]}/'\
+
+            # Determine which video stream to choose.
+            # The force subtitles one, 'file_html5', has "burned in" subtitles.
+            # This is a workaround until proper subtitle support is added.
+            hd = self._plugin.getSetting('hd_quality')
+            forceSub = self._plugin.getSetting('force_subtitles')
+            fl = js['file_hd'] or js['file_flash']
+            if hd and forceSub:
+                fl = js['file_html5_hd'] or js['file_html5']
+                fl = fl.split('urplay/_definst_/mp4:')[-1]
+            elif forceSub:
+                fl = js['file_html5'].split('urplay/_definst_/mp4:')[-1]
+            elif not hd:
+                fl = js['file_flash']
+
+            streamURL = 'http://{streaming_config[streamer][redirect]}/'\
                     'urplay/_definst_/mp4:{vid_file}/'\
                     '{streaming_config[http_streaming][hls_file]}'.format(vid_file = fl, **js)
-            li = xbmcgui.ListItem(path = vidURL)
+            li = xbmcgui.ListItem(path = streamURL)
 
         except (IOError, ValueError, KeyError) as e:
             log.error('Unable to decode video information ({1}).'.format(e))
             xbmcplugin.setResolvedUrl(self._plugin.handle, False, xbmcgui.ListItem())
         else:
-            log.debug('Playing video from URL: "{0}"'.format(vidURL))
+            log.debug('Playing video from URL: "{0}"'.format(streamURL))
             xbmcplugin.setResolvedUrl(self._plugin.handle, True, li)
 
         # TODO: Subtitles!

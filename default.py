@@ -18,6 +18,7 @@ __plugin__.handle = int(sys.argv[1])
 __plugin__.name = __addon__.getAddonInfo('name').decode('utf-8')
 __plugin__.version = __addon__.getAddonInfo('version').decode('utf-8')
 __plugin__.localize = lambda s: __addon__.getLocalizedString(s)
+__plugin__.getSetting = lambda s: __addon__.getSetting(s) == 'true'
 __plugin__.urlRootStr = 'plugin://{0}'.format(__addon__.getAddonInfo('id').decode('utf-8'))
 
 __path__ = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
