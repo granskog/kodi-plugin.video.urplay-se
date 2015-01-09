@@ -33,8 +33,9 @@ log = util.Logger(lambda m, l: xbmc.log(m.encode('utf-8'), l),
         lvlInfo = xbmc.LOGINFO,
         lvlWarn = xbmc.LOGWARNING,
         lvlErr = xbmc.LOGERROR)
-log.info('Plugin started! Name: {0}. Handle: {1}.'.format(__plugin__.name, __plugin__.handle))
-log.debug('Plugin base URL: ' + __plugin__.urlRootStr)
+
+log.info('Plugin started with handle: {0}. Python version: {1}.'.format(__plugin__.handle,
+    sys.version.replace('\n', '')))
 
 import resources.lib.dispatcher as dp
 import resources.lib.urplay as ur
@@ -51,5 +52,6 @@ app = dp.Dispatcher(__plugin__, [
 ])
 
 # Run the addon application.
-log.debug('Dispatching path: ' + str(__path__))
+log.debug('Plugin base URL: ' + __plugin__.urlRootStr)
+log.debug('Dispatching path: ' + unicode(__path__))
 app.dispatch(__path__)

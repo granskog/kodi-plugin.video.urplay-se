@@ -51,7 +51,7 @@ class WebEnabled(object):
         if not self._html:
             log.info('Fetching content from "{0}".'.format(self.url))
             try:
-                request = urllib2.Request(str(self.url))
+                request = urllib2.Request(unicode(self.url))
                 response = urllib2.urlopen(request)
             except (urllib2.URLError, urllib2.HTTPError), e:
                 log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))

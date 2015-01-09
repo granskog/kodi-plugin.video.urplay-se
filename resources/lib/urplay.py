@@ -120,7 +120,7 @@ class Videos(URPlayDirectory):
                     seriesTitle = stripTags(parseDOM(videoInfo, 'h2')[0]).replace('TV. ', '', 1)
                     label = title
                     if title != seriesTitle:
-                        label = u'{0} - {1}'.format(seriesTitle, title)
+                        label = '{0} - {1}'.format(seriesTitle, title)
                 except IndexError as e:
                     log.debug('Exception, ({0}), for video: {1}'.format(e, video))
                     # Skip this item since we didn't manage to collect
@@ -138,8 +138,8 @@ class Videos(URPlayDirectory):
                 if info['aired']:
                     aired = '{0}: {1}.\n'.format(self._plugin.localize(30300), info['aired'])
 
-                noPlot = '-'+self._plugin.localize(30302)+'-'
-                plot = safeListGet(parseDOM(videoInfo, 'p'), 0,noPlot)
+                noPlot = '- ' + self._plugin.localize(30302) + ' -'
+                plot = safeListGet(parseDOM(videoInfo, 'p'), 0, noPlot)
                 info['plot'] = aired + (plot or noPlot)
 
                 info['duration'] = self.convertDuration(safeListGet(parseDOM(videoInfo, 'dd'), 0, ''))
@@ -164,7 +164,7 @@ class Videos(URPlayDirectory):
                             self._path.args.get('page'))
                     else:
                         if page < totalpages:
-                            url = self._plugin.urlRootStr + str(URL(self._path, page = page + 1))
+                            url = self._plugin.urlRootStr + unicode(URL(self._path, page = page + 1))
                             txt = self._plugin.localize(30301)
                             label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
 
@@ -180,7 +180,7 @@ class Videos(URPlayDirectory):
         match = self._durationRegex.match(dur)
         if match:
             h, m, s = map(float, match.groups('0'))
-            return str(int(round(h*60 + m + s/60)))
+            return unicode(int(round(h*60 + m + s/60)))
         return '0'
 
 class Series(Videos):

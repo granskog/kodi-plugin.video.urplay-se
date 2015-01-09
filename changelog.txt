@@ -1,4 +1,4 @@
-v1.0.0
+v1.0.0 ~ RC1
 - Initial release.
 
 v0.1.0
