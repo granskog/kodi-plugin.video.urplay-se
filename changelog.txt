@@ -1,3 +1,10 @@
+v1.1.1 ~ RC1
+- Fix for script not starting on GotHam.
+
+v1.1.0 ~ RC1
+- Unicode support.
+- Settings for HD-quality & Subtitles (temp. until properly supported).
+
 v1.0.0 ~ RC1
 - Initial release.
 
