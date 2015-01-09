@@ -7,6 +7,8 @@ import xbmcaddon
 import urlparse
 
 import resources.lib.util as util
+import resources.lib.dispatcher as dp
+import resources.lib.urplay as ur
 
 # Add-on info.
 class Plugin:
@@ -26,9 +28,9 @@ __path__ = util.URL(sys.argv[0].split(__plugin__.urlRootStr)[-1],
 
 xbmcplugin.setContent(__plugin__.handle, 'tvshows')
 
-# Setup the logger before any modules that might use it are imported.
-# Kodi logging does not support Unicode, so encode to UTF-8.
-log = util.Logger(lambda m, l: xbmc.log(m.encode('utf-8'), l),
+# Setup the logger. Kodi logging does not support Unicode, so encode to UTF-8.
+log = util.Logger()
+log.setupLogger(lambda m, l: xbmc.log(m.encode('utf-8'), l),
         name = __plugin__.name + ' v' + __plugin__.version,
         lvlDeb = xbmc.LOGDEBUG,
         lvlInfo = xbmc.LOGINFO,
@@ -37,9 +39,6 @@ log = util.Logger(lambda m, l: xbmc.log(m.encode('utf-8'), l),
 
 log.info('Plugin started with handle: {0}. Python version: {1}.'.format(__plugin__.handle,
     sys.version.replace('\n', '')))
-
-import resources.lib.dispatcher as dp
-import resources.lib.urplay as ur
 
 # Associate the plugin URLs to respective handler.
 app = dp.Dispatcher(__plugin__, [
