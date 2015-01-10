@@ -115,3 +115,7 @@ msgstr "Nästa sida"
 msgctxt "#30302"
 msgid "No description"
 msgstr "Beskrivning saknas"
+
+msgctxt "#30303"
+msgid "All Topics"
+msgstr "Alla ämnen"

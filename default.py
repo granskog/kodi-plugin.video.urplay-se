@@ -61,6 +61,7 @@ log.info('Plugin started with handle: {0}. Python version: {1}.'.format(__plugin
 app = dp.Dispatcher(__plugin__, [
     (r'/?', ur.Index),
     (r'/Kategorier', ur.Categories),
+    (r'/Kategorier/[^/]+', ur.SubCategories),
     (r'/A-O', ur.AllProgrammes),
     (r'/Aktuellt', ur.CurrentShows),
     (r'/Series/.+', ur.Series),

@@ -24,14 +24,15 @@ import re
 
 from interface import *
 from util import Logger, safeListGet
-from parsedom import parseDOM, stripTags
+import parsedom
+parseDOM = parsedom.parseDOM
+stripTags = parsedom.stripTags
+replaceHTMLCodes = parsedom.replaceHTMLCodes
 
 log = Logger()
 
 # Monkeypatch parsedom to use our debugging system.
-# Note that printing debug to xbmc seriously bloat the log file
-# and slow things down.
-import parsedom
+# Note that enabling parseDOM debug bloat the log file.
 __DEBUG_PARSEDOM__ = False
 def pLog(dsc, lvl):
     if __DEBUG_PARSEDOM__: log.debug(dsc)
@@ -61,13 +62,13 @@ class Index(StaticDir):
 
 class Categories(StaticDir):
     _items = [
-        (30200, '/Dokumentar'),
-        (30201, '/Forelasningar-debatt'),
-        (30202, '/Vetenskap'),
-        (30203, '/Kultur-historia'),
-        (30204, '/Samhalle'),
-        (30205, '/Sprak'),
-        (30206, '/Barn')
+        (30200, '/Kategorier/Dokumentar'),
+        (30201, '/Kategorier/Forelasningar-debatt'),
+        (30202, '/Kategorier/Vetenskap'),
+        (30203, '/Kategorier/Kultur-historia'),
+        (30204, '/Kategorier/Samhalle'),
+        (30205, '/Kategorier/Sprak'),
+        (30206, '/Kategorier/Barn')
     ]
 
 class URPlay(BaseHandler, WebEnabled):
@@ -80,6 +81,30 @@ class URPlay(BaseHandler, WebEnabled):
 class URPlayDirectory(URPlay, Directory):
     pass
 
+class SubCategories(URPlayDirectory):
+    def __init__(self, plugin, path):
+        path.url = path.url[11:]
+        super(SubCategories, self).__init__(plugin, path)
+
+    def _fetch(self):
+        if self.html:
+            categories = parseDOM(self.html, 'ul', attrs = {'id': 'underkategori'})
+            if categories:
+                subCategories = re.findall(r'<a href="([^"]+?)">(.+?)</a>', categories[0])
+                for href, name in subCategories:
+                    li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+                    li.setLabel(replaceHTMLCodes(name))
+                    url = self._plugin.urlRootStr + href
+
+                    yield url, li, True
+            # In case no sub-categories are found, place a link to list videos for all topics.
+            else:
+                log.warning('No sub-categories found.')
+                li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+                li.setLabel(self._plugin.localize(30303))
+                url = self._plugin.urlRootStr + unicode(self._path)
+                yield url, li, True
+
 class AllProgrammes(URPlayDirectory):
     def _fetch(self):
         if self.html:
@@ -91,6 +116,7 @@ class AllProgrammes(URPlayDirectory):
                     # Add a path step to the url because otherwise we can't distinguish between a series,
                     # which is a collection of videos, or a single video to play.
                     url = self._plugin.urlRootStr + '/Series' + href
+
                     yield url, li, True
 
 class CurrentShows(URPlayDirectory):
@@ -113,6 +139,7 @@ class CurrentShows(URPlayDirectory):
 
                 li.setLabel(label)
                 li.setInfo('Video', {'plot' : plot})
+
                 yield url, li, True
 
 class Videos(URPlayDirectory):
@@ -120,7 +147,7 @@ class Videos(URPlayDirectory):
 
     def _fetch(self):
         if self.html:
-            videos = parseDOM(self.html, "section", attrs = {'class': 'tv'})
+            videos = parseDOM(self.html, 'section', attrs = {'class': 'tv'})
             for video in videos:
                 li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
                 try:
@@ -167,7 +194,7 @@ class Videos(URPlayDirectory):
                 yield url, li, False
 
             # Add a 'next page' item if pagination is available.
-            nav = parseDOM(self.html, "nav", attrs = {"class": "pagination"})
+            nav = parseDOM(self.html, 'nav', attrs = {'class': 'pagination'})
             if nav:
                 log.debug('Found nav item on page!')
                 pages = re.findall(r'<a href=".*>(\d+)</a>', nav[0])
@@ -185,8 +212,7 @@ class Videos(URPlayDirectory):
                             txt = self._plugin.localize(30301)
                             label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
 
-                            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
-                            li.setLabel(label)
+                            li = xbmcgui.ListItem(label, iconImage='DefaultFolder.png')
                             log.debug('Adding pagination ({0}/{1}) to: "{2}".'.format(page, totalpages, url))
 
                             yield url, li, True

@@ -115,3 +115,7 @@ msgstr ""
 msgctxt "#30302"
 msgid "No description"
 msgstr ""
+
+msgctxt "#30303"
+msgid "All Topics"
+msgstr ""

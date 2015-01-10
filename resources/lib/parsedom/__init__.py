@@ -206,7 +206,7 @@ def replaceHTMLCodes(txt):
     log(repr(txt), 5)
 
     # Fix missing ; in &#<number>;
-    txt = re.sub("(&#[0-9]+)([^;^0-9]+)", "\\1;\\2", makeUTF8(txt))
+    txt = re.sub("(&#[0-9]+)([^;^0-9]+)", "\\1;\\2", txt)
 
     txt = HTMLParser.HTMLParser().unescape(txt)
     txt = txt.replace("&amp;", "&")
@@ -225,26 +225,6 @@ def stripTags(html):
 
     log(repr(html), 5)
     return html
-
-
-def makeUTF8(data):
-    log(repr(data), 5)
-    return data
-    try:
-        return data.decode('utf8', 'xmlcharrefreplace') # was 'ignore'
-    except:
-        log("Hit except on : " + repr(data))
-        s = u""
-        for i in data:
-            try:
-                i.decode("utf8", "xmlcharrefreplace") 
-            except:
-                log("Can't convert character", 4)
-                continue
-            else:
-                s += i
-        log(repr(s), 5)
-        return s
 
 
 def log(description, level=0):
