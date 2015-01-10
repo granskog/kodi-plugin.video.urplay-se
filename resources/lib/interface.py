@@ -90,7 +90,7 @@ class WebEnabled(object):
                         html = html.decode(charset)
                         break
                     except UnicodeError:
-                        log.warning('Unable decode content using "{}".'.format(charset))
+                        log.warning('Unable decode content using "{0}".'.format(charset))
                         continue
                 else:
                     log.error('Unable to decode content.')
