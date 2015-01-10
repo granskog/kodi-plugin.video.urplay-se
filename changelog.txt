@@ -1,3 +1,6 @@
+v1.2.0 ~ RC1
+- Sub-categories listed under the categories page.
+
 v1.1.1 ~ RC1
 - Fix for script not starting on GotHam.
 
