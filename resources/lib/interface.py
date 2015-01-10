@@ -65,6 +65,7 @@ class WebEnabled(object):
 
     @property
     def html(self):
+        # Fetch content if we haven't already.
         if not self._html:
             log.info('Fetching content from "{0}".'.format(self.url))
             try:
@@ -76,8 +77,8 @@ class WebEnabled(object):
                 return None
 
             # This should really be handled better. There is no check for charset in actual
-            # html response. Also guessing charsets is not that nice. But for now, it will
-            # have to do for now.
+            # html response. Also guessing charsets is not that nice really. But for now, it will
+            # have to do.
             charset = response.headers['content-type'].split('charset=')[-1]
             try:
                 html = html.decode(charset)
@@ -97,4 +98,6 @@ class WebEnabled(object):
 
             self._html = html
             log.debug('Received response, ok!')
+
+        # Otherwise return cached response.
         return self._html
