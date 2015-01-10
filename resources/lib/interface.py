@@ -70,18 +70,31 @@ class WebEnabled(object):
             try:
                 request = urllib2.Request(unicode(self.url))
                 response = urllib2.urlopen(request)
+                html = response.read()
             except (urllib2.URLError, urllib2.HTTPError), e:
                 log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
                 return None
+
+            # This should really be handled better. There is no check for charset in actual
+            # html response. Also guessing charsets is not that nice. But for now, it will
+            # have to do for now.
             charset = response.headers['content-type'].split('charset=')[-1]
             try:
-                self._html = response.read().decode(charset)
+                html = html.decode(charset)
             except LookupError:
-                log.error('Unknown charset ({0}) in header, trying utf-8.'.format(charset))
-                try:
-                    self._html = response.read().decode('utf-8')
-                except UnicodeError:
-                    log.error('Unable decode content using utf-8.')
+                charsets = ['utf-8', 'latin-1']
+                log.error('Unknown charset ("{0}") in header, trying one of these: {1}.'.format(charset, charsets))
+                for charset in charsets:
+                    try:
+                        html = html.decode(charset)
+                        break
+                    except UnicodeError:
+                        log.warning('Unable decode content using "{}".'.format(charset))
+                        continue
+                else:
+                    log.error('Unable to decode content.')
                     return None
+
+            self._html = html
             log.debug('Received response, ok!')
         return self._html
