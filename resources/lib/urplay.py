@@ -81,30 +81,6 @@ class URPlay(BaseHandler, WebEnabled):
 class URPlayDirectory(URPlay, Directory):
     pass
 
-class SubCategories(URPlayDirectory):
-    def __init__(self, plugin, path):
-        path.url = path.url[11:]
-        super(SubCategories, self).__init__(plugin, path)
-
-    def _fetch(self):
-        if self.html:
-            categories = parseDOM(self.html, 'ul', attrs = {'id': 'underkategori'})
-            if categories:
-                subCategories = re.findall(r'<a href="([^"]+?)">(.+?)</a>', categories[0])
-                for href, name in subCategories:
-                    li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
-                    li.setLabel(replaceHTMLCodes(name))
-                    url = self._plugin.urlRootStr + href
-
-                    yield url, li, True
-            # In case no sub-categories are found, place a link to list videos for all topics.
-            else:
-                log.warning('No sub-categories found.')
-                li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
-                li.setLabel(self._plugin.localize(30303))
-                url = self._plugin.urlRootStr + unicode(self._path)
-                yield url, li, True
-
 class AllProgrammes(URPlayDirectory):
     def _fetch(self):
         if self.html:
@@ -122,19 +98,19 @@ class AllProgrammes(URPlayDirectory):
 class CurrentShows(URPlayDirectory):
     def _fetch(self):
         if self.html:
-            headings = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
-            for heading in headings:
+            headers = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
+            for header in headers:
                 li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
                 try:
-                    label = parseDOM(heading, 'h2')[0]
-                    plot = parseDOM(heading, 'p')[0]
-                    url = self._plugin.urlRootStr + parseDOM(heading, 'a',
+                    label = parseDOM(header, 'h2')[0]
+                    plot = parseDOM(header, 'p')[0]
+                    url = self._plugin.urlRootStr + parseDOM(header, 'a',
                         attrs = {'class': r'button[\d]?'}, ret = 'href')[0]
                 except IndexError as e:
-                    log.debug('Exception, ({0}), for heading: {1}'.format(e, heading))
+                    log.debug('Exception, ({0}), for header: {1}'.format(e, header))
                     # Skip this item since we didn't manage to collect
                     # all the essential information.
-                    log.warning('Did not manage to decode a heading in current shows. Skip to next.')
+                    log.warning('Did not manage to decode a header in current shows. Skip to next.')
                     continue
 
                 li.setLabel(label)
@@ -235,6 +211,36 @@ class Series(Videos):
         # constructor. That is done with the slice below.
         path.url = path.url[7:]
         super(Series, self).__init__(plugin, path)
+
+class SubCategories(Videos):
+    def __init__(self, plugin, path):
+        path.url = path.url[11:]
+        super(SubCategories, self).__init__(plugin, path)
+
+    def _fetch(self):
+        # List item generator for sub-categories.
+        def genListItems(cat):
+            for href, name in cat:
+                li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+                li.setLabel(replaceHTMLCodes(name))
+                url = self._plugin.urlRootStr + replaceHTMLCodes(href)
+                yield url, li, True
+
+        # Search html for sub-categories.
+        if self.html:
+            categories = parseDOM(self.html, 'ul', attrs = {'id': 'underkategori'})
+            subCategories = None
+            if categories:
+                subCategories = re.findall(r'<a href="([^"]+?)">(.+?)</a>', categories[0])
+
+            # Return the appropriate generator object. In the case no sub-categories are found,
+            # fall-back by trying to list all videos instead. This works, because the page already
+            # lists all videos if no sub-category in query, i.e. same as the sub-category "All Topics".
+            if subCategories:
+                return genListItems(subCategories)
+            else:
+                log.warning('No sub-categories found. Trying to list videos from {0}.'.format(unicode(self.url)))
+                return super(SubCategories, self)._fetch()
 
 class Video(URPlay):
     def process(self):
