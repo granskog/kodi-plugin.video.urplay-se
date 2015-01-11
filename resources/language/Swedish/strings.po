@@ -116,6 +116,16 @@ msgctxt "#30302"
 msgid "No description"
 msgstr "Beskrivning saknas"
 
-msgctxt "#30303"
-msgid "All Topics"
-msgstr "Alla ämnen"
+# Notification messages.
+
+msgctxt "#30400"
+msgid "Please check the log file for details."
+msgstr "Kontrollera loggfilen för detaljer."
+
+msgctxt "#30401"
+msgid "Unable to retrieve content from stream service."
+msgstr "Det gick inte att hämta innehåll från play-tjänsten."
+
+msgctxt "#30402"
+msgid "Unable to resolve URL for stream."
+msgstr "Ogiltlig address till video strömmen."

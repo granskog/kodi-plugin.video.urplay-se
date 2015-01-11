@@ -18,11 +18,16 @@
 
 from __future__ import unicode_literals
 import urllib2
-import xbmcplugin
 
 from util import Logger, URL
 
 log = Logger()
+
+class HandlingError(Exception):
+    def __init__(self,msg, code):
+        self.msgCode = code
+        super(HandlingError, self).__init__(msg)
+    pass
 
 class BaseHandler(object):
     def __init__(self, plugin, path):
@@ -32,23 +37,6 @@ class BaseHandler(object):
 
     def process(self):
         raise NotImplementedError
-
-class Directory(BaseHandler):
-    def _fetch(self):
-        raise NotImplementedError
-
-    def process(self):
-        log.debug('Start updating folder for "{0}".'.format(self._path))
-        # Unfortunately xbmcplugin.addDirectoryItems() does not work with generators.
-        # It expects a list, so call list() on the generator object.
-        items = list(self._fetch())
-        if items:
-            xbmcplugin.addDirectoryItems(self._plugin.handle, items)
-            xbmcplugin.endOfDirectory(self._plugin.handle)
-            log.debug('Done updating folder for "{0}".'.format(self._path))
-        else:
-            log.warning('No items retrieved for path: '.format(self._path))
-            xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
 
 class URLBuilder(type):
     def __init__(cls, name, bases, attrs):
@@ -83,7 +71,7 @@ class WebEnabled(object):
             try:
                 html = html.decode(charset)
             except LookupError:
-                charsets = ['utf-8', 'latin-1']
+                charsets = ['utf-8', 'cp1252', 'latin-1']
                 log.error('Unknown charset ("{0}") in header, trying one of these: {1}.'.format(charset, charsets))
                 for charset in charsets:
                     try:

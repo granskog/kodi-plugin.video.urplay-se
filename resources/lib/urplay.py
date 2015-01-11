@@ -38,6 +38,33 @@ def pLog(dsc, lvl):
     if __DEBUG_PARSEDOM__: log.debug(dsc)
 parsedom.log = pLog
 
+class Directory(BaseHandler):
+
+    def _fetch(self):
+        raise NotImplementedError
+
+    def process(self):
+        log.debug('Start updating folder for "{0}".'.format(self._path))
+        try:
+            # Apparently xbmcplugin.addDirectoryItems() does not work with generators.
+            # It expects a list, so call list() on the generator object.
+            itemlist = list(self._fetch())
+            xbmcplugin.addDirectoryItems(self._plugin.handle, itemlist)
+            # If no items found, let it slip. It will show up as an empty "folder".
+            # Log it for ease of debugging if it was not suppose to happen.
+            if not itemlist:
+                log.debug('No items retrieved for path: '.format(self._path))
+
+            xbmcplugin.endOfDirectory(self._plugin.handle)
+            log.debug('Done updating folder for "{0}".'.format(self._path))
+
+        # If a serius error occured notify the user via a dialog.
+        except HandlingError, e:
+            log.error('Exception during handling of "{0}" ({1}).'.format(self._path, e))
+            xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
+            xbmcgui.Dialog().ok(self._plugin.name, self._plugin.localize(e.msgCode),
+                self._plugin.localize(30400))
+
 class StaticDir(Directory):
     _items = []
     def _fetch(self):
@@ -78,120 +105,127 @@ class URPlay(BaseHandler, WebEnabled):
         self.url += path
         super(URPlay, self).__init__(plugin, path)
 
-class URPlayDirectory(URPlay, Directory):
+class ItemFetchError(HandlingError):
     pass
 
+class URPlayDirectory(URPlay, Directory):
+    def _getListGen(self):
+        raise NotImplementedError
+
+    def _fetch(self):
+        if self.html:
+            return self._getListGen()
+        else:
+            raise ItemFetchError('HTTP connection failure.', 30401)
+
 class AllProgrammes(URPlayDirectory):
-    def _fetch(self):
-        if self.html:
-            section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})
-            if section:
-                programmes = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section[0])
-                for title, href in programmes:
-                    li = xbmcgui.ListItem(title, iconImage='DefaultFolder.png')
-                    # Add a path step to the url because otherwise we can't distinguish between a series,
-                    # which is a collection of videos, or a single video to play.
-                    url = self._plugin.urlRootStr + '/Series' + href
-
-                    yield url, li, True
-
-class CurrentShows(URPlayDirectory):
-    def _fetch(self):
-        if self.html:
-            headers = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
-            for header in headers:
-                li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
-                try:
-                    label = parseDOM(header, 'h2')[0]
-                    plot = parseDOM(header, 'p')[0]
-                    url = self._plugin.urlRootStr + parseDOM(header, 'a',
-                        attrs = {'class': r'button[\d]?'}, ret = 'href')[0]
-                except IndexError as e:
-                    log.debug('Exception, ({0}), for header: {1}'.format(e, header))
-                    # Skip this item since we didn't manage to collect
-                    # all the essential information.
-                    log.warning('Did not manage to decode a header in current shows. Skip to next.')
-                    continue
-
-                li.setLabel(label)
-                li.setInfo('Video', {'plot' : plot})
+    def _getListGen(self):
+        section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})
+        if section:
+            programmes = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section[0])
+            for title, href in programmes:
+                li = xbmcgui.ListItem(title, iconImage='DefaultFolder.png')
+                # Add a path step to the url because otherwise we can't distinguish between a series,
+                # which is a collection of videos, or a single video to play.
+                url = self._plugin.urlRootStr + '/Series' + href
 
                 yield url, li, True
+
+class CurrentShows(URPlayDirectory):
+    def _getListGen(self):
+        headers = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
+        for header in headers:
+            li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
+            try:
+                label = parseDOM(header, 'h2')[0]
+                plot = parseDOM(header, 'p')[0]
+                url = self._plugin.urlRootStr + parseDOM(header, 'a',
+                    attrs = {'class': r'button[\d]?'}, ret = 'href')[0]
+            except IndexError as e:
+                log.debug('Exception, ({0}), for header: {1}'.format(e, header))
+                # Skip this item since we didn't manage to collect
+                # all the essential information.
+                log.warning('Did not manage to decode a header in current shows. Skip to next.')
+                continue
+
+            li.setLabel(label)
+            li.setInfo('Video', {'plot' : plot})
+
+            yield url, li, True
 
 class Videos(URPlayDirectory):
     url = URL('', product_type = 'programtv')
 
-    def _fetch(self):
-        if self.html:
-            videos = parseDOM(self.html, 'section', attrs = {'class': 'tv'})
-            for video in videos:
-                li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
+    def _getListGen(self):
+        videos = parseDOM(self.html, 'section', attrs = {'class': 'tv'})
+        for video in videos:
+            li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
+            try:
+                url = self._plugin.urlRootStr + parseDOM(video, 'a', ret = 'href')[0]
+                videoInfo = parseDOM(video, 'a')[0]
+
+                # It seems that there is a javascript that updates the thumbnail image link
+                # to a high resolution one based on your screen size. Therefore we need to manually
+                # update each thumbnail link.
+                thumb = parseDOM(videoInfo, 'img', ret = 'src')[0].replace('1_t.jpg', '1_l.jpg', 1)
+
+                # Fetch video title and check if the video is part of a series.
+                title = parseDOM(videoInfo, 'h1')[0]
+                seriesTitle = stripTags(parseDOM(videoInfo, 'h2')[0]).replace('TV. ', '', 1)
+                label = title
+                if title != seriesTitle:
+                    label = '{0} - {1}'.format(seriesTitle, title)
+            except IndexError as e:
+                log.debug('Exception, ({0}), for video: {1}'.format(e, video))
+                # Skip this item since we didn't manage to collect
+                # all the essential information.
+                log.warning('Did not manage to decode a video listing. Skip to next.')
+                continue
+
+            li.setThumbnailImage(thumb)
+            li.setLabel(label)
+            li.setProperty('IsPlayable', 'true');
+
+            info = {}
+            info['aired'] = safeListGet(parseDOM(videoInfo, 'time', ret = 'datetime'), 0, '')[:10]
+            aired = ''
+            if info['aired']:
+                aired = '{0}: {1}.\n'.format(self._plugin.localize(30300), info['aired'])
+
+            noPlot = '- ' + self._plugin.localize(30302) + ' -'
+            plot = safeListGet(parseDOM(videoInfo, 'p'), 0, noPlot)
+            info['plot'] = aired + (plot or noPlot)
+
+            info['duration'] = self.convertDuration(safeListGet(parseDOM(videoInfo, 'dd'), 0, ''))
+            info['title'] = title
+            info['tvshowtitle'] = seriesTitle
+            li.setInfo('Video', info)
+
+            yield url, li, False
+
+        # Add a 'next page' item if pagination is available.
+        nav = parseDOM(self.html, 'nav', attrs = {'class': 'pagination'})
+        if nav:
+            log.debug('Found nav item on page!')
+            pages = re.findall(r'<a href=".*>(\d+)</a>', nav[0])
+            if pages:
+                log.debug('Found the list of pages: ' + repr(pages))
                 try:
-                    url = self._plugin.urlRootStr + parseDOM(video, 'a', ret = 'href')[0]
-                    videoInfo = parseDOM(video, 'a')[0]
+                    totalpages = int(pages[-1])
+                    page = int(self._path.args.get('page', 1))
+                except ValueError:
+                    log.error('Unable to convert "{0}" & "{1}" into integer.').format(pages[-1],
+                        self._path.args.get('page'))
+                else:
+                    if page < totalpages:
+                        url = self._plugin.urlRootStr + unicode(URL(self._path, page = page + 1))
+                        txt = self._plugin.localize(30301)
+                        label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
 
-                    # It seems that there is a javascript that updates the thumbnail image link
-                    # to a high resolution one based on your screen size. Therefore we need to manually
-                    # update each thumbnail link.
-                    thumb = parseDOM(videoInfo, 'img', ret = 'src')[0].replace('1_t.jpg', '1_l.jpg', 1)
+                        li = xbmcgui.ListItem(label, iconImage='DefaultFolder.png')
+                        log.debug('Adding pagination ({0}/{1}) to: "{2}".'.format(page, totalpages, url))
 
-                    # Fetch video title and check if the video is part of a series.
-                    title = parseDOM(videoInfo, 'h1')[0]
-                    seriesTitle = stripTags(parseDOM(videoInfo, 'h2')[0]).replace('TV. ', '', 1)
-                    label = title
-                    if title != seriesTitle:
-                        label = '{0} - {1}'.format(seriesTitle, title)
-                except IndexError as e:
-                    log.debug('Exception, ({0}), for video: {1}'.format(e, video))
-                    # Skip this item since we didn't manage to collect
-                    # all the essential information.
-                    log.warning('Did not manage to decode a video listing. Skip to next.')
-                    continue
-
-                li.setThumbnailImage(thumb)
-                li.setLabel(label)
-                li.setProperty('IsPlayable', 'true');
-
-                info = {}
-                info['aired'] = safeListGet(parseDOM(videoInfo, 'time', ret = 'datetime'), 0, '')[:10]
-                aired = ''
-                if info['aired']:
-                    aired = '{0}: {1}.\n'.format(self._plugin.localize(30300), info['aired'])
-
-                noPlot = '- ' + self._plugin.localize(30302) + ' -'
-                plot = safeListGet(parseDOM(videoInfo, 'p'), 0, noPlot)
-                info['plot'] = aired + (plot or noPlot)
-
-                info['duration'] = self.convertDuration(safeListGet(parseDOM(videoInfo, 'dd'), 0, ''))
-                info['title'] = title
-                info['tvshowtitle'] = seriesTitle
-                li.setInfo('Video', info)
-
-                yield url, li, False
-
-            # Add a 'next page' item if pagination is available.
-            nav = parseDOM(self.html, 'nav', attrs = {'class': 'pagination'})
-            if nav:
-                log.debug('Found nav item on page!')
-                pages = re.findall(r'<a href=".*>(\d+)</a>', nav[0])
-                if pages:
-                    log.debug('Found the list of pages: ' + repr(pages))
-                    try:
-                        totalpages = int(pages[-1])
-                        page = int(self._path.args.get('page', 1))
-                    except ValueError:
-                        log.error('Unable to convert "{0}" & "{1}" into integer.').format(pages[-1],
-                            self._path.args.get('page'))
-                    else:
-                        if page < totalpages:
-                            url = self._plugin.urlRootStr + unicode(URL(self._path, page = page + 1))
-                            txt = self._plugin.localize(30301)
-                            label = '{0}... ({1}/{2})'.format(txt, page, totalpages)
-
-                            li = xbmcgui.ListItem(label, iconImage='DefaultFolder.png')
-                            log.debug('Adding pagination ({0}/{1}) to: "{2}".'.format(page, totalpages, url))
-
-                            yield url, li, True
+                        yield url, li, True
 
     _durationRegex = re.compile(r'^(?:(\d+):)?([0-5]?[0-9]):([0-5]?[0-9])$')
     def convertDuration(self, dur):
@@ -217,7 +251,7 @@ class SubCategories(Videos):
         path.url = path.url[11:]
         super(SubCategories, self).__init__(plugin, path)
 
-    def _fetch(self):
+    def _getListGen(self):
         # List item generator for sub-categories.
         def genListItems(cat):
             for href, name in cat:
@@ -227,20 +261,19 @@ class SubCategories(Videos):
                 yield url, li, True
 
         # Search html for sub-categories.
-        if self.html:
-            categories = parseDOM(self.html, 'ul', attrs = {'id': 'underkategori'})
-            subCategories = None
-            if categories:
-                subCategories = re.findall(r'<a href="([^"]+?)">(.+?)</a>', categories[0])
+        categories = parseDOM(self.html, 'ul', attrs = {'id': 'underkategori'})
+        subCategories = None
+        if categories:
+            subCategories = re.findall(r'<a href="([^"]+?)">(.+?)</a>', categories[0])
 
-            # Return the appropriate generator object. In the case no sub-categories are found,
-            # fall-back by trying to list all videos instead. This works, because the page already
-            # lists all videos if no sub-category in query, i.e. same as the sub-category "All Topics".
-            if subCategories:
-                return genListItems(subCategories)
-            else:
-                log.warning('No sub-categories found. Trying to list videos from {0}.'.format(unicode(self.url)))
-                return super(SubCategories, self)._fetch()
+        # Return the appropriate generator object. In the case no sub-categories are found,
+        # fall-back by trying to list all videos instead. This works, because the page already
+        # lists all videos if no sub-category in query, i.e. same as the sub-category "All Topics".
+        if subCategories:
+            return genListItems(subCategories)
+        else:
+            log.warning('No sub-categories found. Trying to list videos from {0}.'.format(unicode(self.url)))
+            return super(SubCategories, self)._getListGen()
 
 class Video(URPlay):
     def process(self):
@@ -270,9 +303,11 @@ class Video(URPlay):
                     '{streaming_config[http_streaming][hls_file]}'.format(vid_file = fl, **js)
             li = xbmcgui.ListItem(path = streamURL)
 
-        except (IOError, ValueError, KeyError) as e:
-            log.error('Unable to decode video information ({1}).'.format(e))
+        except (IOError, ValueError, KeyError), e:
+            log.error('Unable to decode video information ({0}).'.format(e))
             xbmcplugin.setResolvedUrl(self._plugin.handle, False, xbmcgui.ListItem())
+            xbmcgui.Dialog().ok(self._plugin.name, self._plugin.localize(30402),
+                self._plugin.localize(30400))
         else:
             log.debug('Playing video from URL: "{0}"'.format(streamURL))
             xbmcplugin.setResolvedUrl(self._plugin.handle, True, li)
