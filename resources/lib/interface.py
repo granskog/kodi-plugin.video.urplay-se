@@ -47,45 +47,43 @@ class URLBuilder(type):
             cls.url = urlRoot + cls.url
         super(URLBuilder, cls).__init__(name, bases, attrs)
 
+class ConnectionError(Exception):
+    pass
+
 class WebEnabled(object):
     __metaclass__ = URLBuilder
-    _html = None
+    html = None
 
-    @property
-    def html(self):
-        # Fetch content if we haven't already.
-        if not self._html:
-            log.info('Fetching content from "{0}".'.format(self.url))
-            try:
-                request = urllib2.Request(unicode(self.url))
-                response = urllib2.urlopen(request)
-                html = response.read()
-            except (urllib2.URLError, urllib2.HTTPError), e:
-                log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
-                return None
+    def fetchHTML(self):
+        log.info('Fetching content from "{0}".'.format(self.url))
+        try:
+            request = urllib2.Request(unicode(self.url), headers = {'User-Agent': 'Mozilla/5.0'})
+            response = urllib2.urlopen(request)
+            html = response.read()
+        except (urllib2.URLError, urllib2.HTTPError), e:
+            log.error('Unable to fetch content from "{0}" ({1}).'.format(self.url, e))
+            raise ConnectionError(e)
 
-            # This should really be handled better. There is no check for charset in actual
-            # html response. Also guessing charsets is not that nice really. But for now, it will
-            # have to do.
-            charset = response.headers['content-type'].split('charset=')[-1]
-            try:
-                html = html.decode(charset)
-            except LookupError:
-                charsets = ['utf-8', 'cp1252', 'latin-1']
-                log.error('Unknown charset ("{0}") in header, trying one of these: {1}.'.format(charset, charsets))
-                for charset in charsets:
-                    try:
-                        html = html.decode(charset)
-                        break
-                    except UnicodeError:
-                        log.warning('Unable decode content using "{0}".'.format(charset))
-                        continue
-                else:
-                    log.error('Unable to decode content.')
-                    return None
+        # This should really be handled better. There is no check for charset in actual
+        # html response. Also guessing charsets is not that nice really. But for now, it will
+        # have to do.
+        charset = response.headers['content-type'].split('charset=')[-1]
+        try:
+            html = html.decode(charset)
+        except LookupError:
+            charsets = ['utf-8', 'cp1252', 'latin-1']
+            log.error('Unknown charset ("{0}") in header, trying one of these: {1}.'.format(charset, charsets))
+            for charset in charsets:
+                try:
+                    html = html.decode(charset)
+                    break
+                except UnicodeError:
+                    log.warning('Unable decode content using "{0}".'.format(charset))
+                    continue
+            else:
+                raise ConnectionError('Unable to decode content.')
 
-            self._html = html
-            log.debug('Received response, ok!')
+        self.html = html
+        log.debug('Received response, ok!')
 
-        # Otherwise return cached response.
-        return self._html
+        return self.html

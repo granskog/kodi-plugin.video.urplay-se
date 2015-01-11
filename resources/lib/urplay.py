@@ -109,17 +109,19 @@ class ItemFetchError(HandlingError):
     pass
 
 class URPlayDirectory(URPlay, Directory):
-    def _getListGen(self):
+    def _getListItemGen(self):
         raise NotImplementedError
 
     def _fetch(self):
-        if self.html:
-            return self._getListGen()
+        try:
+            self.fetchHTML()
+        except ConnectionError, e:
+            raise ItemFetchError(e, 30401)
         else:
-            raise ItemFetchError('HTTP connection failure.', 30401)
+            return self._getListItemGen()
 
 class AllProgrammes(URPlayDirectory):
-    def _getListGen(self):
+    def _getListItemGen(self):
         section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})
         if section:
             programmes = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section[0])
@@ -132,7 +134,7 @@ class AllProgrammes(URPlayDirectory):
                 yield url, li, True
 
 class CurrentShows(URPlayDirectory):
-    def _getListGen(self):
+    def _getListItemGen(self):
         headers = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
         for header in headers:
             li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
@@ -156,7 +158,7 @@ class CurrentShows(URPlayDirectory):
 class Videos(URPlayDirectory):
     url = URL('', product_type = 'programtv')
 
-    def _getListGen(self):
+    def _getListItemGen(self):
         videos = parseDOM(self.html, 'section', attrs = {'class': 'tv'})
         for video in videos:
             li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
@@ -251,9 +253,9 @@ class SubCategories(Videos):
         path.url = path.url[11:]
         super(SubCategories, self).__init__(plugin, path)
 
-    def _getListGen(self):
+    def _getListItemGen(self):
         # List item generator for sub-categories.
-        def genListItems(cat):
+        def liGenerator(cat):
             for href, name in cat:
                 li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
                 li.setLabel(replaceHTMLCodes(name))
@@ -270,10 +272,10 @@ class SubCategories(Videos):
         # fall-back by trying to list all videos instead. This works, because the page already
         # lists all videos if no sub-category in query, i.e. same as the sub-category "All Topics".
         if subCategories:
-            return genListItems(subCategories)
+            return liGenerator(subCategories)
         else:
             log.warning('No sub-categories found. Trying to list videos from {0}.'.format(unicode(self.url)))
-            return super(SubCategories, self)._getListGen()
+            return super(SubCategories, self)._getListItemGen()
 
 class Video(URPlay):
     def process(self):
