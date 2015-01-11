@@ -209,7 +209,7 @@ def replaceHTMLCodes(txt):
     txt = re.sub("(&#[0-9]+)([^;^0-9]+)", "\\1;\\2", txt)
 
     txt = HTMLParser.HTMLParser().unescape(txt)
-    txt = txt.replace("&amp;", "&")
+    # txt = txt.replace("&amp;", "&")
     log(repr(txt), 5)
     return txt
 
