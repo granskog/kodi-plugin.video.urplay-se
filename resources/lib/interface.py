@@ -47,7 +47,7 @@ class Directory(BaseHandler):
             xbmcplugin.endOfDirectory(self._plugin.handle)
             log.debug('Done updating folder for "{0}".'.format(self._path))
         else:
-            log.warning('No items retreived for path: '.format(self._path))
+            log.warning('No items retrieved for path: '.format(self._path))
             xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
 
 class URLBuilder(type):
