@@ -24,7 +24,8 @@ from util import Logger, URL
 log = Logger()
 
 class HandlingError(Exception):
-    def __init__(self,msg, code):
+    def __init__(self, msg, notify = False, code = None):
+        self.notifyUsr = notify
         self.msgCode = code
         super(HandlingError, self).__init__(msg)
     pass

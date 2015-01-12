@@ -17,6 +17,7 @@
 # along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import unicode_literals
+import xbmc
 import xbmcgui
 import xbmcplugin
 import json
@@ -45,11 +46,20 @@ class ExcAwareHandler(BaseHandler):
          # If a serius error occured notify the user via a dialog.
         except HandlingError, e:
             log.error('Exception during handling of "{0}" ({1}).'.format(self._path, e))
-            xbmcgui.Dialog().ok(self._plugin.name, self._plugin.localize(e.msgCode),
-                self._plugin.localize(30400)) #30400: "Check log file".
+            # The message code can be an integer or a tuple of multiple codes. The dialog
+            # only has three text lines so slice the tuple before calling xbmc dialog.
+            if e.notifyUsr:
+                msg = e.msgCode
+                if isinstance(msg, int):
+                    msg = (msg,)
+                msg = map(self._plugin.localize, msg[:3])
+                xbmcgui.Dialog().ok(self._plugin.name, *msg)
 
     def _execute(self):
         raise NotImplementedError
+
+class DirectoryEmptyError(HandlingError):
+    pass
 
 class Directory(ExcAwareHandler):
 
@@ -63,13 +73,15 @@ class Directory(ExcAwareHandler):
             # It expects a list, so call list() on the generator object.
             itemlist = list(self._fetchItems())
             xbmcplugin.addDirectoryItems(self._plugin.handle, itemlist)
-            # If no items found, let it slip. It will show up as an empty "folder".
-            # Log it for ease of debugging if it was not suppose to happen.
-            if not itemlist:
-                log.debug('No items retrieved for path: '.format(self._path))
 
             xbmcplugin.endOfDirectory(self._plugin.handle)
             log.debug('Done updating folder for "{0}".'.format(self._path))
+            # If no items found raise en error so other classes may react if
+            # they wish. It will get caught and logged in parent class, but we do not
+            # notify the user. Since we already ended the directory with success the user
+            # will see an empty folder.
+            if not itemlist:
+                raise DirectoryEmptyError('No items retrieved for path: '.format(self._path), False)
 
         # Tell Kodi that we didn't manage to fetch the directory successfully.
         except ItemFetchError, e:
@@ -95,7 +107,8 @@ class Index(StaticDir):
         (30104, '/Sista-chansen'),
         (30105, '/Kategorier'),
         (30106, '/Aktuellt'),
-        (30107, '/A-O')
+        (30107, '/A-O'),
+        (30108, '/Search')
     ]
 
 class Categories(StaticDir):
@@ -127,7 +140,7 @@ class URPlayDirectory(URPlay, Directory):
         try:
             self.fetchHTML()
         except ConnectionError, e:
-            raise ItemFetchError(e, 30401)
+            raise ItemFetchError(e, True, (30401, 30400))
         else:
             return self._listItemGenerator()
 
@@ -289,6 +302,32 @@ class SubCategories(Videos):
             log.warning('No sub-categories found. Trying to list videos from {0}.'.format(unicode(self.url)))
             return super(SubCategories, self)._listItemGenerator()
 
+class Search(Videos):
+    def __init__(self, plugin, path):
+        super(Search, self).__init__(plugin, URL('/Produkter'))
+
+    def _execute(self):
+        try:
+            super(Search, self)._execute()
+        except DirectoryEmptyError, e:
+            e.msgCode = 30403 # No search results.
+            e.notifyUsr = True
+            raise
+
+    def _fetchItems(self):
+        hdr = self._plugin.name + ': ' + self._plugin.localize(30108)
+        kb = xbmc.Keyboard(heading = hdr)
+        kb.doModal()
+        if kb.isConfirmed():
+            ss = kb.getText().decode('utf-8')
+            log.debug('Got search string: "{0}".'.format(ss))
+            # Return videos for search URL.
+            self.url.args['q'] = ss
+            return super(Search, self)._fetchItems()
+        else:
+            raise ItemFetchError('User cancelled search.', False)
+
+
 class StreamURLError(HandlingError):
     pass
 
@@ -325,7 +364,7 @@ class Video(URPlay):
             log.error('Unable to decode video information ({0}).'.format(e))
             # Tell Kodi we didn't resolved the url.
             xbmcplugin.setResolvedUrl(self._plugin.handle, False, xbmcgui.ListItem())
-            raise StreamURLError(e, 30402)
+            raise StreamURLError(e, True, (30402, 30400))
         else:
             log.debug('Playing video from URL: "{0}"'.format(streamURL))
             xbmcplugin.setResolvedUrl(self._plugin.handle, True, li)

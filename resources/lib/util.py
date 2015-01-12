@@ -83,7 +83,11 @@ class URL(object):
     def __str__(self):
         args = ''
         if self.args:
-            args = '?' + urllib.urlencode(self.args)
+            # Encode key/values with utf-8 if applicable.
+            dargs = dict((k.encode('utf-8'), v.encode('utf-8'))
+                if isinstance(k, unicode) and isinstance(v, unicode) else (k, v)
+                for (k, v) in self.args.items())
+            args = '?' + urllib.urlencode(dargs)
         return urllib.quote(self.url, safe = str('/:')) + args
 
     def extend(self, path):

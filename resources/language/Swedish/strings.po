@@ -72,6 +72,10 @@ msgctxt "#30107"
 msgid "Programmes A-Ö"
 msgstr "Program A-Ö"
 
+msgctxt "#30108"
+msgid "Search"
+msgstr "Sök"
+
 # Categories menu items.
 
 msgctxt "#30200"
@@ -129,3 +133,7 @@ msgstr "Det gick inte att hämta innehåll från play-tjänsten."
 msgctxt "#30402"
 msgid "Unable to resolve URL for stream."
 msgstr "Ogiltlig address till video strömmen."
+
+msgctxt "#30403"
+msgid "No matching results found for query."
+msgstr "Inga sökresultat hittades."
