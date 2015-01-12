@@ -50,7 +50,7 @@ class Dispatcher(object):
 
                 log.debug('Match for: r"{0}". Groups: {1}.'.format(template, match.groups()))
                 h = handlerClass(self._plugin, url)
-                h.process()
+                h.execute()
                 break;
 
         else:

@@ -35,7 +35,7 @@ class BaseHandler(object):
         self._path = path
         super(BaseHandler, self).__init__()
 
-    def process(self):
+    def execute(self):
         raise NotImplementedError
 
 class URLBuilder(type):

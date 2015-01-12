@@ -38,17 +38,30 @@ def pLog(dsc, lvl):
     if __DEBUG_PARSEDOM__: log.debug(dsc)
 parsedom.log = pLog
 
-class Directory(BaseHandler):
+class ExcAwareHandler(BaseHandler):
+    def execute(self):
+        try:
+            self._execute()
+         # If a serius error occured notify the user via a dialog.
+        except HandlingError, e:
+            log.error('Exception during handling of "{0}" ({1}).'.format(self._path, e))
+            xbmcgui.Dialog().ok(self._plugin.name, self._plugin.localize(e.msgCode),
+                self._plugin.localize(30400)) #30400: "Check log file".
 
-    def _fetch(self):
+    def _execute(self):
         raise NotImplementedError
 
-    def process(self):
+class Directory(ExcAwareHandler):
+
+    def _fetchItems(self):
+        raise NotImplementedError
+
+    def _execute(self):
         log.debug('Start updating folder for "{0}".'.format(self._path))
         try:
             # Apparently xbmcplugin.addDirectoryItems() does not work with generators.
             # It expects a list, so call list() on the generator object.
-            itemlist = list(self._fetch())
+            itemlist = list(self._fetchItems())
             xbmcplugin.addDirectoryItems(self._plugin.handle, itemlist)
             # If no items found, let it slip. It will show up as an empty "folder".
             # Log it for ease of debugging if it was not suppose to happen.
@@ -58,16 +71,14 @@ class Directory(BaseHandler):
             xbmcplugin.endOfDirectory(self._plugin.handle)
             log.debug('Done updating folder for "{0}".'.format(self._path))
 
-        # If a serius error occured notify the user via a dialog.
-        except HandlingError, e:
-            log.error('Exception during handling of "{0}" ({1}).'.format(self._path, e))
+        # Tell Kodi that we didn't manage to fetch the directory successfully.
+        except ItemFetchError, e:
             xbmcplugin.endOfDirectory(self._plugin.handle, succeeded = False)
-            xbmcgui.Dialog().ok(self._plugin.name, self._plugin.localize(e.msgCode),
-                self._plugin.localize(30400))
+            raise
 
 class StaticDir(Directory):
     _items = []
-    def _fetch(self):
+    def _fetchItems(self):
         log.debug('Printing the {0} page.'.format(type(self).__name__))
         for langCode, path in self._items:
             url = self._plugin.urlRootStr + path
@@ -98,7 +109,7 @@ class Categories(StaticDir):
         (30206, '/Kategorier/Barn')
     ]
 
-class URPlay(BaseHandler, WebEnabled):
+class URPlay(ExcAwareHandler, WebEnabled):
     url = URL('http://urplay.se')
 
     def __init__(self, plugin, path):
@@ -109,19 +120,19 @@ class ItemFetchError(HandlingError):
     pass
 
 class URPlayDirectory(URPlay, Directory):
-    def _getListItemGen(self):
+    def _listItemGenerator(self):
         raise NotImplementedError
 
-    def _fetch(self):
+    def _fetchItems(self):
         try:
             self.fetchHTML()
         except ConnectionError, e:
             raise ItemFetchError(e, 30401)
         else:
-            return self._getListItemGen()
+            return self._listItemGenerator()
 
 class AllProgrammes(URPlayDirectory):
-    def _getListItemGen(self):
+    def _listItemGenerator(self):
         section = parseDOM(self.html, 'section', attrs = {'id': 'alphabet'})
         if section:
             programmes = re.findall(r'<a title="Visa TV-serien: ([^"]+?)" href="([^"]+?)">', section[0])
@@ -134,7 +145,7 @@ class AllProgrammes(URPlayDirectory):
                 yield url, li, True
 
 class CurrentShows(URPlayDirectory):
-    def _getListItemGen(self):
+    def _listItemGenerator(self):
         headers = parseDOM(self.html, 'div', attrs = {'class': 'list subject'})
         for header in headers:
             li = xbmcgui.ListItem(iconImage='DefaultFolder.png')
@@ -158,7 +169,7 @@ class CurrentShows(URPlayDirectory):
 class Videos(URPlayDirectory):
     url = URL('', product_type = 'programtv')
 
-    def _getListItemGen(self):
+    def _listItemGenerator(self):
         videos = parseDOM(self.html, 'section', attrs = {'class': 'tv'})
         for video in videos:
             li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
@@ -188,6 +199,7 @@ class Videos(URPlayDirectory):
             li.setLabel(label)
             li.setProperty('IsPlayable', 'true');
 
+            # Try to assemble video listing details.
             info = {}
             info['aired'] = safeListGet(parseDOM(videoInfo, 'time', ret = 'datetime'), 0, '')[:10]
             aired = ''
@@ -253,7 +265,7 @@ class SubCategories(Videos):
         path.url = path.url[11:]
         super(SubCategories, self).__init__(plugin, path)
 
-    def _getListItemGen(self):
+    def _listItemGenerator(self):
         # List item generator for sub-categories.
         def liGenerator(cat):
             for href, name in cat:
@@ -275,11 +287,15 @@ class SubCategories(Videos):
             return liGenerator(subCategories)
         else:
             log.warning('No sub-categories found. Trying to list videos from {0}.'.format(unicode(self.url)))
-            return super(SubCategories, self)._getListItemGen()
+            return super(SubCategories, self)._listItemGenerator()
+
+class StreamURLError(HandlingError):
+    pass
 
 class Video(URPlay):
-    def process(self):
+    def _execute(self):
         try:
+            self.fetchHTML()
             match = re.search(r'urPlayer\.init\((.*?)\);', self.html)
             if match is None:
                 raise IOError('No JSON data found on webpage')
@@ -305,11 +321,11 @@ class Video(URPlay):
                     '{streaming_config[http_streaming][hls_file]}'.format(vid_file = fl, **js)
             li = xbmcgui.ListItem(path = streamURL)
 
-        except (IOError, ValueError, KeyError), e:
+        except (ConnectionError, IOError, ValueError, KeyError), e:
             log.error('Unable to decode video information ({0}).'.format(e))
+            # Tell Kodi we didn't resolved the url.
             xbmcplugin.setResolvedUrl(self._plugin.handle, False, xbmcgui.ListItem())
-            xbmcgui.Dialog().ok(self._plugin.name, self._plugin.localize(30402),
-                self._plugin.localize(30400))
+            raise StreamURLError(e, 30402)
         else:
             log.debug('Playing video from URL: "{0}"'.format(streamURL))
             xbmcplugin.setResolvedUrl(self._plugin.handle, True, li)
