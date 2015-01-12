@@ -195,7 +195,7 @@ class Videos(URPlayDirectory):
                 thumb = parseDOM(videoInfo, 'img', ret = 'src')[0].replace('1_t.jpg', '1_l.jpg', 1)
 
                 # Fetch video title and check if the video is part of a series.
-                title = parseDOM(videoInfo, 'h1')[0]
+                title = replaceHTMLCodes(parseDOM(videoInfo, 'h1')[0])
                 h2 = parseDOM(videoInfo, 'h2')
                 prodType = parseDOM(h2, 'span', attrs = {'class': 'product-type'})[0]
                 isSeries = prodType.startswith('Serie')
