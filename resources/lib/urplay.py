@@ -153,7 +153,7 @@ class AllProgrammes(URPlayDirectory):
                 li = xbmcgui.ListItem(title, iconImage='DefaultFolder.png')
                 # Add a path step to the url because otherwise we can't distinguish between a series,
                 # which is a collection of videos, or a single video to play.
-                url = self._plugin.urlRootStr + '/Series' + href
+                url = self._plugin.urlRootStr + '/Serie' + href
 
                 yield url, li, True
 
@@ -183,11 +183,10 @@ class Videos(URPlayDirectory):
     url = URL('', product_type = 'programtv')
 
     def _listItemGenerator(self):
-        videos = parseDOM(self.html, 'section', attrs = {'class': 'tv'})
+        videos = parseDOM(self.html, 'section', attrs = {'class': r'tv|series'})
         for video in videos:
             li = xbmcgui.ListItem(iconImage='DefaultVideo.png')
             try:
-                url = self._plugin.urlRootStr + parseDOM(video, 'a', ret = 'href')[0]
                 videoInfo = parseDOM(video, 'a')[0]
 
                 # It seems that there is a javascript that updates the thumbnail image link
@@ -197,10 +196,23 @@ class Videos(URPlayDirectory):
 
                 # Fetch video title and check if the video is part of a series.
                 title = parseDOM(videoInfo, 'h1')[0]
-                seriesTitle = stripTags(parseDOM(videoInfo, 'h2')[0]).replace('TV. ', '', 1)
+                h2 = parseDOM(videoInfo, 'h2')
+                prodType = parseDOM(h2, 'span', attrs = {'class': 'product-type'})[0]
+                isSeries = prodType.startswith('Serie')
+
+                # Fix url, since otherwise a series has the same url as a single video.
+                url = parseDOM(video, 'a', ret = 'href')[0]
+                if isSeries:
+                    url = '/Serie' + url
+                url = self._plugin.urlRootStr + url
+
+                # Format the series title and construct the list item label.
+                seriesTitle = stripTags(h2[0]).replace(prodType, '', 1).strip()
                 label = title
-                if title != seriesTitle:
+                if not isSeries and (title != seriesTitle):
                     label = '{0} - {1}'.format(seriesTitle, title)
+                elif isSeries:
+                    label = self._plugin.localize(30303) + ': ' + title
             except IndexError as e:
                 log.debug('Exception, ({0}), for video: {1}'.format(e, video))
                 # Skip this item since we didn't manage to collect
@@ -210,7 +222,7 @@ class Videos(URPlayDirectory):
 
             li.setThumbnailImage(thumb)
             li.setLabel(label)
-            li.setProperty('IsPlayable', 'true');
+            li.setProperty('IsPlayable', 'false' if isSeries else 'true');
 
             # Try to assemble video listing details.
             info = {}
@@ -228,7 +240,7 @@ class Videos(URPlayDirectory):
             info['tvshowtitle'] = seriesTitle
             li.setInfo('Video', info)
 
-            yield url, li, False
+            yield url, li, isSeries # If this item is a series, it should be a folder.
 
         # Add a 'next page' item if pagination is available.
         nav = parseDOM(self.html, 'nav', attrs = {'class': 'pagination'})
@@ -270,7 +282,7 @@ class Series(Videos):
         # path ("/Series") in the A-O handler above. Before we can fetch the
         # real URL we need to remove this part from the path received in the
         # constructor. That is done with the slice below.
-        path.url = path.url[7:]
+        path.url = path.url[6:]
         super(Series, self).__init__(plugin, path)
 
 class SubCategories(Videos):

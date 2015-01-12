@@ -120,6 +120,10 @@ msgctxt "#30302"
 msgid "No description"
 msgstr ""
 
+msgctxt "#30303"
+msgid "Series"
+msgstr ""
+
 # Notification messages.
 
 msgctxt "#30400"

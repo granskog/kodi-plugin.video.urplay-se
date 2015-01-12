@@ -65,7 +65,7 @@ app = dp.Dispatcher(__plugin__, [
     (r'/A-O', ur.AllProgrammes),
     (r'/Aktuellt', ur.CurrentShows),
     (r'/Search', ur.Search),
-    (r'/Series/.+', ur.Series),
+    (r'/Serie/.+', ur.Series),
     (r'/Produkter/[^/]+', ur.Video),
     # All other URLs are interpreted as a path to a videos directory.
     (r'/(?:[^/]+/)*(?:[^/]+)?', ur.Videos)
