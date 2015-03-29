@@ -358,17 +358,16 @@ class Video(URPlay):
             # This is a workaround until proper subtitle support is added.
             hd = self._plugin.getSetting('hd_quality')
             forceSub = self._plugin.getSetting('force_subtitles')
-            fl = js['file_hd'] or js['file_flash']
+            fl =  js['file_http_hd'] or js['file_http']
             if hd and forceSub:
-                fl = js['file_html5_hd'] or js['file_html5']
-                fl = fl.split('urplay/_definst_/mp4:')[-1]
+                fl = js['file_http_sub_hd'] or js['file_http_sub']
+                # fl = fl.split('urplay/_definst_/mp4:')[-1]
             elif forceSub:
-                fl = js['file_html5'].split('urplay/_definst_/mp4:')[-1]
+                fl = js['file_http_sub']#.split('urplay/_definst_/mp4:')[-1]
             elif not hd:
-                fl = js['file_flash']
+                fl = js['file_http']
 
-            streamURL = 'http://{streaming_config[streamer][redirect]}/'\
-                    'urplay/_definst_/mp4:{vid_file}/'\
+            streamURL = 'http://{streaming_config[streamer][redirect]}/{vid_file}/'\
                     '{streaming_config[http_streaming][hls_file]}'.format(vid_file = fl, **js)
             li = xbmcgui.ListItem(path = streamURL)
 
